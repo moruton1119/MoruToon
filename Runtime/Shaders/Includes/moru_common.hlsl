@@ -24,19 +24,14 @@ struct v2f_moru
 {
     float4 vertex       : SV_POSITION;
     fixed4 color        : COLOR;
-    float2 uv           : TEXCOORD0;    // Main UV
-    float4 screenPos    : TEXCOORD1;    // Screen position (for soft particle)
+    float2 uv           : TEXCOORD0;
+    float4 screenPos    : TEXCOORD1;
 #if defined(_SOFTPARTICLES_ON)
-    float eyeDepth      : TEXCOORD2;    // Eye depth for soft particles
+    float eyeDepth      : TEXCOORD2;
 #endif
-    UNITY_FOG_COORDS(3)
+    float3 worldPos     : TEXCOORD3;
+    UNITY_FOG_COORDS(4)
 };
-
-// -------------------------------------
-// Blend Mode Helpers
-// -------------------------------------
-// PropertiesでBlend Modeを切り替えるためのenum定義
-// [Enum(UnityEngine.Rendering.BlendMode)] を使用してインスペクターから選択
 
 // -------------------------------------
 // UV Scroll
@@ -97,6 +92,39 @@ inline float2 moruFlipbook(float2 uv, float tilesX, float tilesY, float frame)
 }
 
 // -------------------------------------
+// Flipbook with Blend
+// -------------------------------------
+inline float2 moruFlipbookBlended(
+    float2 uv,
+    float tilesX,
+    float tilesY,
+    float frame,
+    float blend,
+    out float2 uvNext,
+    out float blendFactor)
+{
+    float totalFrames = tilesX * tilesY;
+    frame = fmod(frame, totalFrames);
+
+    float frameFrac = frac(frame);
+    int frame0 = (int)frame;
+    int frame1 = (int)(frame + 1.0) % (int)totalFrames;
+
+    blendFactor = frameFrac * blend;
+
+    float2 tileUV = frac(uv * float2(tilesX, tilesY));
+    float2 scale = float2(1.0/tilesX, 1.0/tilesY);
+
+    float2 offset0 = float2(fmod(frame0, tilesX), floor(frame0 / tilesX)) * scale;
+    float2 offset1 = float2(fmod(frame1, tilesX), floor(frame1 / tilesY)) * scale;
+
+    uv = tileUV * scale + offset0;
+    uvNext = tileUV * scale + offset1;
+
+    return uv;
+}
+
+// -------------------------------------
 // Layer Blend Modes
 // -------------------------------------
 inline fixed3 moruBlendAdd(fixed3 base, fixed3 layer, float intensity)
@@ -114,12 +142,93 @@ inline fixed3 moruBlendScreen(fixed3 base, fixed3 layer, float intensity)
     return lerp(base, 1.0 - (1.0 - base) * (1.0 - layer), intensity);
 }
 
+inline fixed3 moruBlendOverlay(fixed3 base, fixed3 layer, float intensity)
+{
+    fixed3 overlay = base < 0.5 ? 2.0 * base * layer : 1.0 - 2.0 * (1.0 - base) * (1.0 - layer);
+    return lerp(base, overlay, intensity);
+}
+
 // -------------------------------------
 // Emission Pulse
 // -------------------------------------
 inline float moruEmissionPulse(float speed, float minVal, float maxVal)
 {
     return lerp(minVal, maxVal, sin(_Time.y * speed) * 0.5 + 0.5);
+}
+
+// -------------------------------------
+// HUE Shift
+// -------------------------------------
+inline fixed3 moruRGBtoHSV(fixed3 c)
+{
+    fixed4 K = fixed4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+    fixed4 p = lerp(fixed4(c.bg, K.wz), fixed4(c.gb, K.xy), step(c.b, c.g));
+    fixed4 q = lerp(fixed4(p.xyw, c.r), fixed4(c.r, p.yzx), step(p.x, c.r));
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return fixed3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+inline fixed3 moruHSVtoRGB(fixed3 c)
+{
+    fixed4 K = fixed4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    fixed3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * lerp(K.xxx, saturate(p - K.xxx), c.y);
+}
+
+inline fixed3 moruHueShift(fixed3 color, float shift)
+{
+    fixed3 hsv = moruRGBtoHSV(color);
+    hsv.x = frac(hsv.x + shift);
+    return moruHSVtoRGB(hsv);
+}
+
+// -------------------------------------
+// Color Ramp
+// -------------------------------------
+inline fixed3 moruColorRamp(float t, sampler2D rampTex)
+{
+    return tex2D(rampTex, float2(saturate(t), 0.5)).rgb;
+}
+
+// -------------------------------------
+// Distance Fade
+// -------------------------------------
+inline float moruDistanceFade(float3 worldPos, float3 cameraPos, float near, float far)
+{
+    float dist = distance(worldPos, cameraPos);
+    return smoothstep(far, near, dist);
+}
+
+// -------------------------------------
+// Particle Lifetime Alpha
+// Uses TEXCOORD0.z (AgePercent from Custom Vertex Streams)
+// -------------------------------------
+inline float moruLifetimeFade(float agePercent, float fadeInEnd, float fadeOutStart)
+{
+    float fadeIn = smoothstep(0.0, fadeInEnd, agePercent);
+    float fadeOut = 1.0 - smoothstep(fadeOutStart, 1.0, agePercent);
+    return fadeIn * fadeOut;
+}
+
+inline float moruLifetimeDissolveAmount(float agePercent, float startDelay, float speed)
+{
+    return saturate((agePercent - startDelay) * speed);
+}
+
+// -------------------------------------
+// Mask (Visible / Hide)
+// -------------------------------------
+inline float moruApplyMask(float2 uv, sampler2D maskTex, float strength)
+{
+    float maskVal = tex2D(maskTex, uv).r;
+    return lerp(1.0, maskVal, strength);
+}
+
+inline float moruApplyHideMask(float2 uv, sampler2D maskTex, float strength)
+{
+    float maskVal = tex2D(maskTex, uv).r;
+    return lerp(1.0, 1.0 - maskVal, strength);
 }
 
 #endif // MORU_COMMON_INCLUDED
