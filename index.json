@@ -29,6 +29,31 @@
                         "Assets\\MoruToon": ""
                     },
                     "url": "https://github.com/moruton1119/MoruToon/releases/download/v0.1.0/com.moruton.morutoon-0.1.0.zip"
+                },
+                "0.1.1-beta.1": {
+                    "name": "com.moruton.morutoon",
+                    "version": "0.1.1-beta.1",
+                    "displayName": "MoruToon",
+                    "description": "Lightweight gimmick & particle shader collection for VRChat. UV Scroll, Emission, Dissolve, Flipbook, Layer Blend, Soft Particle, Stencil, Color Ramp, HUE Shift, Distance Fade, Lifetime Fade, Mask.",
+                    "unity": "2022.3",
+                    "license": "MIT",
+                    "author": {
+                        "name": "\u3082\u308b\u3068\u3093",
+                        "url": "https://github.com/moruton1119"
+                    },
+                    "keywords": [
+                        "Shader",
+                        "Particle",
+                        "Gimmick",
+                        "VRChat",
+                        "Toon"
+                    ],
+                    "vpmDependencies": {},
+                    "legacyFolders": {
+                        "Assets\\MoruToon": ""
+                    },
+                    "url": "https://github.com/moruton1119/MoruToon/releases/download/v0.1.1-beta.1/com.moruton.morutoon-0.1.1-beta.1.zip",
+                    "prerelease": true
                 }
             }
         }

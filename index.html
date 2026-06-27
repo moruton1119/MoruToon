@@ -5,61 +5,182 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoruToon - VPM Repository</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 640px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            background: #1a1a2e;
-            color: #e0e0e0;
-            line-height: 1.6;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        h1 {
-            background: linear-gradient(135deg, #00d4ff, #ff00aa);
+        .container {
+            max-width: 580px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            font-size: 3em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #58a6ff, #bc8cff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-size: 2.5em;
+            margin-bottom: 8px;
         }
-        a {
-            color: #00d4ff;
+        .tagline {
+            color: #8b949e;
+            font-size: 1.1em;
+            margin-bottom: 36px;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 1.05em;
+            font-weight: 600;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-vcc {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: #fff;
+        }
+        .btn-vcc:hover {
+            background: linear-gradient(135deg, #2ea043, #3fb950);
+        }
+        .btn-github {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+        }
+        .btn-github:hover {
+            background: #30363d;
+        }
+        .btn-manual {
+            background: transparent;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            font-size: 0.9em;
+            padding: 10px 20px;
+        }
+        .manual-steps {
+            text-align: left;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+            margin-top: 8px;
+        }
+        .manual-steps.show { display: block; }
+        .manual-steps h3 {
+            font-size: 0.95em;
+            margin-bottom: 12px;
+            color: #58a6ff;
+        }
+        .manual-steps ol {
+            padding-left: 20px;
+            line-height: 1.8;
+            color: #8b949e;
+            font-size: 0.9em;
+        }
+        .manual-steps code {
+            background: #0d1117;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #79c0ff;
+            word-break: break-all;
+        }
+        .url-box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #79c0ff;
+            word-break: break-all;
+            margin-top: 8px;
+        }
+        .footer {
+            margin-top: 36px;
+            color: #484f58;
+            font-size: 0.85em;
+        }
+        .footer a {
+            color: #58a6ff;
             text-decoration: none;
         }
-        a:hover {
-            text-decoration: underline;
-        }
-        .url {
-            background: #16213e;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.9em;
-            word-break: break-all;
-            border: 1px solid #30475e;
-        }
-        ol { padding-left: 20px; }
-        li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
-    <h1>🎨 MoruToon</h1>
-    <p>Lightweight gimmick &amp; particle shader collection for VRChat.</p>
+    <div class="container">
+        <div class="logo">MoruToon</div>
+        <p class="tagline">Lightweight Gimmick &amp; Particle Shader for VRChat</p>
 
-    <h2>📥 Installation</h2>
-    <p>Add this URL to VCC (VRChat Creator Companion):</p>
-    <div class="url">https://moruton1119.github.io/MoruToon/index.json</div>
+        <div class="btn-group">
+            <!-- VCCワンクリック追加 -->
+            <a href="vcc://vpm/add/repo?url=https://moruton1119.github.io/MoruToon/index.json"
+               class="btn btn-vcc">
+                ⬇ Add to VCC
+            </a>
 
-    <h3>Steps:</h3>
-    <ol>
-        <li>Open <strong>VCC</strong></li>
-        <li>Go to <strong>Settings → Packages</strong></li>
-        <li>Click <strong>"Add Repository"</strong></li>
-        <li>Paste the URL above</li>
-        <li>Click <strong>"Add"</strong> and accept the prompt</li>
-        <li>Install <strong>MoruToon</strong> from your project's package list</li>
-    </ol>
+            <!-- GitHub -->
+            <a href="https://github.com/moruton1119/MoruToon" class="btn btn-github">
+                📦 GitHub Repository
+            </a>
 
-    <p>
-        <a href="https://github.com/moruton1119/MoruToon">GitHub Repository</a>
-    </p>
+            <!-- 手動追加の手順（トグル） -->
+            <a href="#" class="btn btn-manual" id="toggleManual">
+                📋 Manual Installation Steps
+            </a>
+        </div>
+
+        <div class="manual-steps" id="manualSteps">
+            <h3>📌 Manual VCC Setup</h3>
+            <ol>
+                <li>Open <strong>VCC</strong> (VRChat Creator Companion)</li>
+                <li>Go to <strong>Settings → Packages</strong></li>
+                <li>Click <strong>"Add Repository"</strong></li>
+                <li>Paste this URL:</li>
+                <li>
+                    <div class="url-box">https://moruton1119.github.io/MoruToon/index.json</div>
+                </li>
+                <li>Click <strong>"Add"</strong> and accept the prompt</li>
+                <li>Install <strong>MoruToon</strong> from your project's package list</li>
+            </ol>
+        </div>
+
+        <div class="footer">
+            MIT License · Created by
+            <a href="https://github.com/moruton1119">もるとん</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('toggleManual').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('manualSteps').classList.toggle('show');
+        });
+    </script>
 </body>
 </html>
