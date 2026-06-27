@@ -1,0 +1,17 @@
+{
+    "name": "com.moruton.morutoon",
+    "version": "0.1.0",
+    "displayName": "MoruToon",
+    "description": "Lightweight gimmick & particle shader collection for VRChat.",
+    "unity": "2022.3",
+    "license": "MIT",
+    "author": {
+        "name": "もるとん",
+        "url": "https://github.com/moruton1119"
+    },
+    "keywords": ["Shader", "Particle", "Gimmick", "VRChat", "Toon"],
+    "vpmDependencies": {},
+    "legacyFolders": {
+        "Assets\\MoruToon": ""
+    }
+}

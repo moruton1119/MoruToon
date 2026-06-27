@@ -1,0 +1,11 @@
+{
+    "name": "MoruToon",
+    "author": "moruton1119",
+    "id": "https://moruton1119.github.io/MoruToon/index.json",
+    "url": "https://moruton1119.github.io/MoruToon/index.json",
+    "packages": {
+        "com.moruton.morutoon": {
+            "versions": {}
+        }
+    }
+}

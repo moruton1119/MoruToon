@@ -1,0 +1,117 @@
+name: Publish VPM Package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract Version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Pack Package
+        run: |
+          zip -r "com.moruton.morutoon-${{ steps.version.outputs.VERSION }}.zip" . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x ".vscode/*" \
+            -x "Tests/*" \
+            -x "obj/*" \
+            -x "docs/*" \
+            -x "Documentation/*" \
+            -x "*.meta"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "com.moruton.morutoon-${{ steps.version.outputs.VERSION }}.zip"
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            ## MoruToon v${{ steps.version.outputs.VERSION }}
+
+            ### Changes
+            - See [commit history](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}) for details.
+
+      - name: Update VPM Repository
+        run: |
+          python3 -c "
+          import json, sys, os, urllib.request
+
+          pkg_path = 'package.json'
+          idx_path = 'docs/index.json'
+          tag_version = '${{ steps.version.outputs.VERSION }}'
+          repo_name = '${{ github.event.repository.name }}'
+          repo_url = f'https://moruton1119.github.io/{repo_name}/index.json'
+          zip_url = f'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/com.moruton.morutoon-{tag_version}.zip'
+
+          print(f'Updating {idx_path} with version {tag_version}...')
+
+          # Load package.json
+          with open(pkg_path, 'r') as f:
+              pkg = json.load(f)
+          pkg['version'] = tag_version
+
+          # Try to load existing index.json from gh-pages
+          idx = {}
+          try:
+              with urllib.request.urlopen(repo_url) as response:
+                  idx = json.loads(response.read().decode())
+              print(f'Fetched existing index.json from {repo_url}')
+          except Exception as e:
+              print(f'Could not fetch existing index.json: {e}. Using local if exists.')
+              if os.path.exists(idx_path):
+                  with open(idx_path, 'r') as f:
+                      idx = json.load(f)
+
+          # Ensure base metadata
+          idx.setdefault('name', 'MoruToon')
+          idx.setdefault('author', 'moruton1119')
+          idx['id'] = repo_url
+          idx['url'] = repo_url
+          if 'packages' not in idx:
+              idx['packages'] = {}
+
+          name = pkg['name']
+
+          # Ensure package structure exists
+          if name not in idx['packages']:
+              idx['packages'][name] = {'versions': {}}
+
+          # Add/Update version
+          pkg['url'] = zip_url
+          if '-' in tag_version:
+              pkg['prerelease'] = True
+          idx['packages'][name]['versions'][tag_version] = pkg
+
+          print(f'Adding package {name} version {tag_version}')
+
+          # Save updated index.json
+          os.makedirs(os.path.dirname(idx_path), exist_ok=True)
+          with open(idx_path, 'w') as f:
+              json.dump(idx, f, indent=4)
+
+          print('Successfully updated docs/index.json')
+          "
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
+          keep_files: true
