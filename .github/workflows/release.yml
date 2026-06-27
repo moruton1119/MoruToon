@@ -33,6 +33,13 @@ jobs:
             -x "Documentation/*" \
             -x "*.meta"
 
+      - name: Compute SHA256
+        id: sha
+        run: |
+          SHA=$(sha256sum "com.moruton.morutoon-${{ steps.version.outputs.VERSION }}.zip" | awk '{print $1}')
+          echo "SHA256=$SHA" >> $GITHUB_OUTPUT
+          echo "SHA256: $SHA"
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -56,10 +63,12 @@ jobs:
           idx_path = 'docs/index.json'
           tag_version = '${{ steps.version.outputs.VERSION }}'
           repo_name = '${{ github.event.repository.name }}'
-          repo_url = f'https://moruton1119.github.io/{repo_name}/index.json'
+          vpm_url = f'https://moruton1119.github.io/{repo_name}/index.json'
           zip_url = f'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/com.moruton.morutoon-{tag_version}.zip'
+          zip_sha256 = '${{ steps.sha.outputs.SHA256 }}'
 
           print(f'Updating {idx_path} with version {tag_version}...')
+          print(f'zipSHA256: {zip_sha256}')
 
           # Load package.json
           with open(pkg_path, 'r') as f:
@@ -69,20 +78,20 @@ jobs:
           # Try to load existing index.json from gh-pages
           idx = {}
           try:
-              with urllib.request.urlopen(repo_url) as response:
+              with urllib.request.urlopen(vpm_url) as response:
                   idx = json.loads(response.read().decode())
-              print(f'Fetched existing index.json from {repo_url}')
+              print(f'Fetched existing index.json from {vpm_url}')
           except Exception as e:
               print(f'Could not fetch existing index.json: {e}. Using local if exists.')
               if os.path.exists(idx_path):
                   with open(idx_path, 'r') as f:
                       idx = json.load(f)
 
-          # Ensure base metadata
-          idx.setdefault('name', 'MoruToon')
-          idx.setdefault('author', 'moruton1119')
-          idx['id'] = repo_url
-          idx['url'] = repo_url
+          # === Base metadata (lilToon/Poiyomi互換フォーマット) ===
+          idx['name'] = 'MoruToon'
+          idx['id'] = 'io.github.moruton1119.morutoon'
+          idx['author'] = 'moruton1119'
+          idx['url'] = vpm_url
           if 'packages' not in idx:
               idx['packages'] = {}
 
@@ -92,11 +101,26 @@ jobs:
           if name not in idx['packages']:
               idx['packages'][name] = {'versions': {}}
 
-          # Add/Update version
-          pkg['url'] = zip_url
-          if '-' in tag_version:
-              pkg['prerelease'] = True
-          idx['packages'][name]['versions'][tag_version] = pkg
+          # === Version entry (lilToon/Poiyomi互換) ===
+          version_entry = {
+              'name': pkg['name'],
+              'displayName': pkg.get('displayName', 'MoruToon'),
+              'version': tag_version,
+              'description': pkg.get('description', ''),
+              'unity': pkg.get('unity', '2022.3'),
+              'license': pkg.get('license', 'MIT'),
+              'author': pkg.get('author', {'name': 'moruton1119'}),
+              'keywords': pkg.get('keywords', []),
+              'vpmDependencies': pkg.get('vpmDependencies', {}),
+              'legacyFolders': pkg.get('legacyFolders', {}),
+              'url': zip_url,
+              'zipSHA256': zip_sha256,
+              'changelogUrl': 'https://github.com/moruton1119/MoruToon/releases',
+              'documentationUrl': 'https://github.com/moruton1119/MoruToon#readme',
+              'licensesUrl': 'https://github.com/moruton1119/MoruToon/blob/main/LICENSE',
+          }
+
+          idx['packages'][name]['versions'][tag_version] = version_entry
 
           print(f'Adding package {name} version {tag_version}')
 
