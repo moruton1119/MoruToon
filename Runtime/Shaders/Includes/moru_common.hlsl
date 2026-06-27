@@ -24,13 +24,14 @@ struct v2f_moru
 {
     float4 vertex       : SV_POSITION;
     fixed4 color        : COLOR;
-    float2 uv           : TEXCOORD0;
-    float4 screenPos    : TEXCOORD1;
+    float2 uv           : TEXCOORD0;    // Main UV
+    float  agePercent   : TEXCOORD1;    // Particle age (0-1), from Custom Vertex Streams or 0
+    float4 screenPos    : TEXCOORD2;
 #if defined(_SOFTPARTICLES_ON)
-    float eyeDepth      : TEXCOORD2;
+    float eyeDepth      : TEXCOORD3;
 #endif
-    float3 worldPos     : TEXCOORD3;
-    UNITY_FOG_COORDS(4)
+    float3 worldPos     : TEXCOORD4;
+    UNITY_FOG_COORDS(5)
 };
 
 // -------------------------------------
@@ -92,15 +93,16 @@ inline float2 moruFlipbook(float2 uv, float tilesX, float tilesY, float frame)
 }
 
 // -------------------------------------
-// Flipbook with Blend
+// Flipbook with Blend (returns two UVs + blend factor)
 // -------------------------------------
-inline float2 moruFlipbookBlended(
+inline void moruFlipbookBlended(
     float2 uv,
     float tilesX,
     float tilesY,
     float frame,
     float blend,
-    out float2 uvNext,
+    out float2 uvA,
+    out float2 uvB,
     out float blendFactor)
 {
     float totalFrames = tilesX * tilesY;
@@ -113,15 +115,15 @@ inline float2 moruFlipbookBlended(
     blendFactor = frameFrac * blend;
 
     float2 tileUV = frac(uv * float2(tilesX, tilesY));
-    float2 scale = float2(1.0/tilesX, 1.0/tilesY);
+    float2 scale = float2(1.0 / tilesX, 1.0 / tilesY);
 
-    float2 offset0 = float2(fmod(frame0, tilesX), floor(frame0 / tilesX)) * scale;
-    float2 offset1 = float2(fmod(frame1, tilesX), floor(frame1 / tilesY)) * scale;
+    // frame0
+    float2 offset0 = float2(fmod((float)frame0, tilesX), floor((float)frame0 / tilesX)) * scale;
+    uvA = tileUV * scale + offset0;
 
-    uv = tileUV * scale + offset0;
-    uvNext = tileUV * scale + offset1;
-
-    return uv;
+    // frame1
+    float2 offset1 = float2(fmod((float)frame1, tilesX), floor((float)frame1 / tilesX)) * scale;
+    uvB = tileUV * scale + offset1;
 }
 
 // -------------------------------------
@@ -161,7 +163,7 @@ inline float moruEmissionPulse(float speed, float minVal, float maxVal)
 // -------------------------------------
 inline fixed3 moruRGBtoHSV(fixed3 c)
 {
-    fixed4 K = fixed4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+    fixed4 K = fixed4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
     fixed4 p = lerp(fixed4(c.bg, K.wz), fixed4(c.gb, K.xy), step(c.b, c.g));
     fixed4 q = lerp(fixed4(p.xyw, c.r), fixed4(c.r, p.yzx), step(p.x, c.r));
     float d = q.x - min(q.w, q.y);
@@ -171,7 +173,7 @@ inline fixed3 moruRGBtoHSV(fixed3 c)
 
 inline fixed3 moruHSVtoRGB(fixed3 c)
 {
-    fixed4 K = fixed4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    fixed4 K = fixed4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     fixed3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * lerp(K.xxx, saturate(p - K.xxx), c.y);
 }
@@ -202,7 +204,6 @@ inline float moruDistanceFade(float3 worldPos, float3 cameraPos, float near, flo
 
 // -------------------------------------
 // Particle Lifetime Alpha
-// Uses TEXCOORD0.z (AgePercent from Custom Vertex Streams)
 // -------------------------------------
 inline float moruLifetimeFade(float agePercent, float fadeInEnd, float fadeOutStart)
 {

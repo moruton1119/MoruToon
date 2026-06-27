@@ -2,13 +2,6 @@
 // MoruToon - Lightweight Gimmick & Particle Shader
 // Version: 0.1.0
 // License: MIT
-//
-// Features:
-//   [Particle] UV Scroll, Emission, Flipbook, Soft Particle,
-//              Color Ramp, HUE Shift, Distance Fade, Lifetime Fade
-//   [Gimmick]  Dissolve, Layer Blend, Stencil, Mask, HUE Shift,
-//              Distance Fade
-//   [System]   Template Tab System, Blend/Cull/ZWrite切替
 // ============================================================
 
 Shader "MoruToon/Particle"
@@ -19,9 +12,6 @@ Shader "MoruToon/Particle"
         // Template Selector (Tab System)
         // ============================================
         [HideInInspector] _TemplateMode ("Template Mode", Float) = 0
-        // 0: Basic, 1: UV Scroll, 2: Dissolve, 3: Flipbook,
-        // 4: Layer Blend, 5: Soft Particle, 6: Stencil Portal,
-        // 7: Particle FX, 8: Custom
 
         // ============================================
         // Main
@@ -127,8 +117,6 @@ Shader "MoruToon/Particle"
         // ============================================
         // Stencil
         // ============================================
-        [Toggle] _STENCIL_ON ("Stencil", Float) = 0
-        [Enum(Draw,0,Mask,1,Cutout,2)] _StencilMode ("Stencil Mode", Float) = 0
         _StencilRef ("Stencil Reference", Range(0,255)) = 1
         [Enum(UnityEngine.Rendering.CompareFunction)] _StencilComp ("Stencil Compare", Float) = 8    // Always
         [Enum(UnityEngine.Rendering.StencilOp)] _StencilPass ("Stencil Pass", Float) = 2            // Replace
@@ -153,7 +141,6 @@ Shader "MoruToon/Particle"
         }
         LOD 100
 
-        // Stencil設定（グローバル）
         Stencil
         {
             Ref [_StencilRef]
@@ -169,9 +156,6 @@ Shader "MoruToon/Particle"
             ZWrite [_ZWrite]
             Lighting Off
             ZTest LEqual
-
-            // Stencil Cutout / Mask時は色を描かない
-            ColorMask [_ColorMask]
 
             CGPROGRAM
             #pragma vertex vert
@@ -213,13 +197,11 @@ Shader "MoruToon/Particle"
 
             // Emission
             sampler2D _EmissionMap;
-            float4 _EmissionMap_ST;
             fixed4 _EmissionColor;
             float _PulseSpeed, _PulseMin, _PulseMax;
 
             // Dissolve
             sampler2D _DissolveTex;
-            float4 _DissolveTex_ST;
             float _DissolveAmount, _DissolveEdgeWidth;
             fixed4 _DissolveEdgeColor;
             float _DissolveDelay, _DissolveSpeed;
@@ -229,7 +211,6 @@ Shader "MoruToon/Particle"
 
             // Layer Blend
             sampler2D _SubTex;
-            float4 _SubTex_ST;
             float _BlendMode, _SubIntensity;
             float _SubScrollSpeedU, _SubScrollSpeedV;
 
@@ -252,14 +233,9 @@ Shader "MoruToon/Particle"
 
             // Mask
             sampler2D _VisibleMaskTex;
-            float4 _VisibleMaskTex_ST;
             float _VisibleMaskStrength;
             sampler2D _HideMaskTex;
-            float4 _HideMaskTex_ST;
             float _HideMaskStrength;
-
-            // Stencil
-            float _StencilMode;
 
             // ============================================
             // Vertex
@@ -270,13 +246,13 @@ Shader "MoruToon/Particle"
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.color = v.color;
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                o.agePercent = 0.0;
                 o.screenPos = ComputeScreenPos(o.vertex);
                 o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
 
 #if defined(_SOFTPARTICLES_ON)
                 COMPUTE_EYEDEPTH(o.eyeDepth);
 #endif
-
                 UNITY_TRANSFER_FOG(o, o.vertex);
                 return o;
             }
@@ -287,6 +263,8 @@ Shader "MoruToon/Particle"
             fixed4 frag(v2f_moru i) : SV_Target
             {
                 float2 uv = i.uv;
+                float agePercent = i.agePercent;
+                fixed4 col;
 
                 // --- UV Scroll ---
                 #if defined(_UVSCROLL_ON)
@@ -298,25 +276,31 @@ Shader "MoruToon/Particle"
                     uv = moruRotateUV(uv, _Time.y * _RotationSpeed);
                 #endif
 
-                // --- Flipbook ---
+                // --- Flipbook + Main Texture Sampling ---
                 #if defined(_FLIPBOOK_ON)
+                {
                     float frame = _Time.y * _FlipbookFPS;
-                    #if defined(_FLIPBOOK_BLEND)
-                        float2 uvNext;
+                    if (_FlipbookBlend > 0.001)
+                    {
+                        float2 uvA, uvB;
                         float blendFactor;
-                        uv = moruFlipbookBlended(uv, _FlipbookTilesX, _FlipbookTilesY, frame, _FlipbookBlend, uvNext, blendFactor);
-                    #else
+                        moruFlipbookBlended(uv, _FlipbookTilesX, _FlipbookTilesY, frame, _FlipbookBlend, uvA, uvB, blendFactor);
+                        col = lerp(tex2D(_MainTex, uvA), tex2D(_MainTex, uvB), blendFactor);
+                    }
+                    else
+                    {
                         uv = moruFlipbook(uv, _FlipbookTilesX, _FlipbookTilesY, floor(frame));
-                    #endif
+                        col = tex2D(_MainTex, uv);
+                    }
+                }
+                #else
+                    col = tex2D(_MainTex, uv);
                 #endif
-
-                // --- Main Texture ---
-                fixed4 col = tex2D(_MainTex, uv);
 
                 // --- Layer Blend ---
                 #if defined(_LAYERBLEND_ON)
-                    float2 subUV = uv;
-                    subUV = moruUVScroll(subUV, _SubScrollSpeedU, _SubScrollSpeedV);
+                {
+                    float2 subUV = moruUVScroll(uv, _SubScrollSpeedU, _SubScrollSpeedV);
                     fixed4 subCol = tex2D(_SubTex, subUV);
                     if (_BlendMode < 0.5)
                         col.rgb = moruBlendAdd(col.rgb, subCol.rgb, _SubIntensity);
@@ -326,13 +310,16 @@ Shader "MoruToon/Particle"
                         col.rgb = moruBlendScreen(col.rgb, subCol.rgb, _SubIntensity);
                     else
                         col.rgb = moruBlendOverlay(col.rgb, subCol.rgb, _SubIntensity);
+                }
                 #endif
 
                 // --- Mask (Visible / Hide) ---
                 #if defined(_MASK_ON)
+                {
                     float visMask = moruApplyMask(uv, _VisibleMaskTex, _VisibleMaskStrength);
                     float hideMask = moruApplyHideMask(uv, _HideMaskTex, _HideMaskStrength);
                     col.a *= visMask * hideMask;
+                }
                 #endif
 
                 // --- Apply Vertex Color ---
@@ -342,119 +329,76 @@ Shader "MoruToon/Particle"
 
                 // --- Color Ramp ---
                 #if defined(_COLORRAMP_ON)
+                {
                     float rampT = col.a;
                     fixed3 rampColor = moruColorRamp(rampT, _ColorRampTex);
                     col.rgb = lerp(col.rgb, col.rgb * rampColor, _ColorRampIntensity);
+                }
                 #endif
 
                 // --- HUE Shift ---
                 #if defined(_HUESHIFT_ON)
+                {
                     float hueOffset = _HueShift;
                     if (_HueShiftSpeed > 0.0)
                         hueOffset += frac(_Time.y * _HueShiftSpeed);
                     col.rgb = moruHueShift(col.rgb, hueOffset);
+                }
                 #endif
 
                 // --- Emission ---
                 #if defined(_EMISSION_ON)
+                {
                     fixed3 emis = tex2D(_EmissionMap, uv).rgb * _EmissionColor.rgb;
                     #if defined(_EMISSION_PULSE)
                         float pulse = moruEmissionPulse(_PulseSpeed, _PulseMin, _PulseMax);
                         emis *= pulse;
                     #endif
                     col.rgb += emis;
+                }
                 #endif
 
                 // --- Particle Lifetime Fade ---
                 #if defined(_LIFETIMEFADE_ON)
-                    float agePercent = i.uv.z; // TEXCOORD0.z from Custom Vertex Streams
+                {
                     float lifeFade = moruLifetimeFade(agePercent, _LifetimeFadeIn, _LifetimeFadeOut);
                     col.a *= lifeFade;
+                }
                 #endif
 
                 // --- Dissolve ---
                 #if defined(_DISSOLVE_ON)
+                {
                     float dissAmount = _DissolveAmount;
                     #if defined(_DISSOLVE_LIFETIME)
-                        float agePercent = i.uv.z;
                         dissAmount = moruLifetimeDissolveAmount(agePercent, _DissolveDelay, _DissolveSpeed);
                     #endif
                     moruDissolve(col, uv, _DissolveTex, dissAmount, _DissolveEdgeWidth, _DissolveEdgeColor);
+                }
                 #endif
 
                 // --- Distance Fade ---
                 #if defined(_DISTANCEFADE_ON)
+                {
                     float distFade = moruDistanceFade(i.worldPos, _WorldSpaceCameraPos, _FadeNear, _FadeFar);
                     col.a *= distFade;
+                }
                 #endif
 
                 // --- Soft Particle ---
                 #if defined(_SOFTPARTICLES_ON)
+                {
                     float sceneZ = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos)));
                     float partZ = i.eyeDepth;
                     float fade = saturate(_SoftDistance / (sceneZ - partZ));
                     col.a *= fade;
+                }
                 #endif
 
                 // --- Fog ---
                 UNITY_APPLY_FOG(i.fogCoord, col);
 
                 return col;
-            }
-            ENDCG
-        }
-    }
-
-    // Stencil Mask専用（色を描かない）
-    SubShader
-    {
-        Tags
-        {
-            "Queue" = "Geometry-1"
-            "RenderType" = "Opaque"
-        }
-        LOD 100
-
-        Pass
-        {
-            Name "StencilMask"
-            ColorMask 0
-            ZWrite Off
-
-            Stencil
-            {
-                Ref [_StencilRef]
-                Comp Always
-                Pass Replace
-            }
-
-            CGPROGRAM
-            #pragma vertex vert_mask
-            #pragma fragment frag_mask
-            #pragma target 3.0
-
-            #include "UnityCG.cginc"
-
-            struct appdata_mask
-            {
-                float4 vertex : POSITION;
-            };
-
-            struct v2f_mask
-            {
-                float4 vertex : SV_POSITION;
-            };
-
-            v2f_mask vert_mask(appdata_mask v)
-            {
-                v2f_mask o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                return o;
-            }
-
-            fixed4 frag_mask(v2f_mask i) : SV_Target
-            {
-                return 0;
             }
             ENDCG
         }
