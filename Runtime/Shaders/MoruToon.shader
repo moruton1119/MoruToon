@@ -405,4 +405,6 @@ Shader "MoruToon/Particle"
     }
 
     FallBack "Transparent/VertexLit"
+
+    CustomEditor "MoruToon.Editor.MoruToonGUI"
 }
