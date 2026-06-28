@@ -24,6 +24,8 @@ Lightweight gimmick & particle shader collection for VRChat.
 5. Add the repository
 6. Install "MoruToon" from your project's package list
 
+https://moruton1119.github.io/MoruToon/
+
 ### Manual
 
 Download the latest `.unitypackage` from [Releases](../../releases) and import into your project.
