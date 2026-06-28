@@ -1,17 +1,19 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
+using System.Collections.Generic;
+using System.IO;
 
 namespace MoruToon.Editor
 {
     /// <summary>
     /// MoruToon Custom ShaderGUI
-    /// lilToon風のFoldoutベースUI + 用途別プリセット
+    /// 設定タブ + テンプレートタブの2画面構成
     /// </summary>
     public class MoruToonGUI : ShaderGUI
     {
         // ============================================
-        // 用途別プリセット（ユーザーが「作りたいもの」で選べる）
+        // Preset Definition
         // ============================================
         private class PresetConfig
         {
@@ -24,9 +26,11 @@ namespace MoruToon.Editor
             public float cull = 0;        // Off
         }
 
-        private static readonly PresetConfig[] Presets =
+        // ============================================
+        // Built-in Presets (用途別)
+        // ============================================
+        private static readonly PresetConfig[] BuiltInPresets =
         {
-            // --- Particle系 ---
             new PresetConfig
             {
                 name = "🔥 Fire / 炎",
@@ -60,7 +64,7 @@ namespace MoruToon.Editor
                 name = "💨 Smoke / 煙",
                 description = "フリップブック煙アニメ＋ソフトパーティクル",
                 features = new[] { "_FLIPBOOK_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
-                srcBlend = 2, dstBlend = 0, // One*Zero = overwrite alpha blend風
+                srcBlend = 2, dstBlend = 0,
             },
             new PresetConfig
             {
@@ -83,11 +87,10 @@ namespace MoruToon.Editor
                 features = new[] { "_UVSCROLL_ON", "_ROTATION_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_LAYERBLEND_ON" },
                 srcBlend = 5, dstBlend = 10,
             },
-            // --- Gimmick系 ---
             new PresetConfig
             {
                 name = "🚪 Stencil Portal / ポータル",
-                description = "ディゾルブ＋発光＋UVスクロール。ステンシルでポータル表現",
+                description = "ディゾルブ＋発光＋UVスクロール",
                 features = new[] { "_DISSOLVE_ON", "_EMISSION_ON", "_UVSCROLL_ON" },
                 srcBlend = 5, dstBlend = 10,
             },
@@ -105,7 +108,6 @@ namespace MoruToon.Editor
                 features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_HUESHIFT_ON", "_COLORRAMP_ON", "_DISTANCEFADE_ON" },
                 srcBlend = 5, dstBlend = 10,
             },
-            // --- Basic ---
             new PresetConfig
             {
                 name = "⚪ Basic / 基本",
@@ -113,22 +115,19 @@ namespace MoruToon.Editor
                 features = new[] { "_EMISSION_ON" },
                 srcBlend = 5, dstBlend = 10,
             },
-            new PresetConfig
-            {
-                name = "⚙ Custom / カスタム",
-                description = "全機能を手動でON/OFF",
-                features = new string[] { },
-            },
         };
 
-        private static string[] PresetDisplayNames
+        // カスタムテンプレート（ユーザーが追加したもの）
+        private List<PresetConfig> _customPresets = new List<PresetConfig>();
+
+        // 全テンプレート（Built-in + Custom）
+        private List<PresetConfig> AllPresets
         {
             get
             {
-                string[] names = new string[Presets.Length];
-                for (int i = 0; i < Presets.Length; i++)
-                    names[i] = Presets[i].name;
-                return names;
+                List<PresetConfig> all = new List<PresetConfig>(BuiltInPresets);
+                all.AddRange(_customPresets);
+                return all;
             }
         }
 
@@ -150,8 +149,8 @@ namespace MoruToon.Editor
         // ============================================
         // Tab State
         // ============================================
-        private enum MainTab { Template, Properties }
-        private MainTab _currentTab = MainTab.Template;
+        private enum MainTab { Settings, Template }
+        private MainTab _currentTab = MainTab.Settings;
 
         // ============================================
         // Foldout States
@@ -182,6 +181,9 @@ namespace MoruToon.Editor
         private GUIStyle _descStyle;
         private GUIStyle _searchStyle;
         private string _searchWord = "";
+
+        // カスタムテンプレート保存用の名前入力
+        private string _newPresetName = "";
 
         private void InitStyles()
         {
@@ -215,10 +217,7 @@ namespace MoruToon.Editor
             }
             if (_presetLabelStyle == null)
             {
-                _presetLabelStyle = new GUIStyle(EditorStyles.boldLabel)
-                {
-                    fontSize = 12,
-                };
+                _presetLabelStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 12 };
             }
             if (_descStyle == null)
             {
@@ -262,6 +261,117 @@ namespace MoruToon.Editor
         }
 
         // ============================================
+        // カスタムテンプレートの保存・読み込み
+        // ============================================
+        private string GetCustomPresetDir()
+        {
+            return Path.Combine(Application.persistentDataPath, "MoruToon", "Presets");
+        }
+
+        private void SaveCustomPreset(string name, Material material)
+        {
+            PresetConfig preset = new PresetConfig
+            {
+                name = "📦 " + name,
+                description = "User custom preset",
+            };
+
+            List<string> features = new List<string>();
+            foreach (string f in AllFeatures)
+            {
+                if (material.HasProperty(f) && material.GetFloat(f) > 0.5f)
+                    features.Add(f);
+            }
+            preset.features = features.ToArray();
+
+            if (material.HasProperty("_SrcBlend")) preset.srcBlend = material.GetFloat("_SrcBlend");
+            if (material.HasProperty("_DstBlend")) preset.dstBlend = material.GetFloat("_DstBlend");
+            if (material.HasProperty("_ZWrite")) preset.zWrite = material.GetFloat("_ZWrite");
+            if (material.HasProperty("_Cull")) preset.cull = material.GetFloat("_Cull");
+
+            _customPresets.Add(preset);
+            SaveCustomPresetsToDisk();
+        }
+
+        private void SaveCustomPresetsToDisk()
+        {
+            try
+            {
+                string dir = GetCustomPresetDir();
+                Directory.CreateDirectory(dir);
+
+                foreach (var preset in _customPresets)
+                {
+                    string safeName = preset.name.Replace("📦 ", "").Replace("/", "_").Replace(" ", "_");
+                    string path = Path.Combine(dir, safeName + ".json");
+
+                    PresetData data = new PresetData
+                    {
+                        name = preset.name,
+                        description = preset.description,
+                        features = preset.features,
+                        srcBlend = preset.srcBlend,
+                        dstBlend = preset.dstBlend,
+                        zWrite = preset.zWrite,
+                        cull = preset.cull
+                    };
+
+                    File.WriteAllText(path, JsonUtility.ToJson(data, true));
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"MoruToon: Failed to save custom presets: {e.Message}");
+            }
+        }
+
+        private void LoadCustomPresetsFromDisk()
+        {
+            try
+            {
+                string dir = GetCustomPresetDir();
+                if (!Directory.Exists(dir)) return;
+
+                _customPresets.Clear();
+                string[] files = Directory.GetFiles(dir, "*.json");
+                foreach (string file in files)
+                {
+                    string json = File.ReadAllText(file);
+                    PresetData data = JsonUtility.FromJson<PresetData>(json);
+                    if (data != null && !string.IsNullOrEmpty(data.name))
+                    {
+                        _customPresets.Add(new PresetConfig
+                        {
+                            name = data.name,
+                            description = data.description ?? "User custom preset",
+                            features = data.features ?? new string[] { },
+                            srcBlend = data.srcBlend,
+                            dstBlend = data.dstBlend,
+                            zWrite = data.zWrite,
+                            cull = data.cull
+                        });
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"MoruToon: Failed to load custom presets: {e.Message}");
+            }
+        }
+
+        [System.Serializable]
+        private class PresetData
+        {
+            public string name;
+            public string description;
+            public string[] features;
+            public float srcBlend = 5;
+            public float dstBlend = 10;
+            public float zWrite = 0;
+            public float cull = 0;
+        }
+
+        // ============================================
         // メインGUI
         // ============================================
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
@@ -271,10 +381,18 @@ namespace MoruToon.Editor
 
             InitStyles();
 
+            // カスタムテンプレート読み込み（初回）
+            if (_customPresets.Count == 0 && !Directory.Exists(GetCustomPresetDir()))
+            {
+                // 初回は何もしない
+            }
+            else if (_customPresets.Count == 0)
+            {
+                LoadCustomPresetsFromDisk();
+            }
+
             MaterialProperty templateProp = FindProperty("_TemplateMode", properties, false);
-            int currentPreset = templateProp != null ? (int)templateProp.floatValue : 0;
-            // 範囲外チェック（プリセット数が変わった時の対策）
-            if (currentPreset < 0 || currentPreset >= Presets.Length) currentPreset = 0;
+            int currentPreset = templateProp != null ? (int)templateProp.floatValue : -1;
 
             EditorGUI.BeginChangeCheck();
 
@@ -282,34 +400,30 @@ namespace MoruToon.Editor
             EditorGUILayout.Space(2);
             using (new GUILayout.HorizontalScope())
             {
-                // Template タブ
+                // Settings タブ（左）
                 Color prevColor = GUI.color;
+                if (_currentTab == MainTab.Settings)
+                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
+                if (GUILayout.Button("⚙ Settings / 設定", EditorStyles.miniButtonLeft, GUILayout.Height(28)))
+                    _currentTab = MainTab.Settings;
+                GUI.color = prevColor;
+
+                // Template タブ（右）
                 if (_currentTab == MainTab.Template)
                     GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
-                if (GUILayout.Button("📋 Template / テンプレート", EditorStyles.miniButtonMid, GUILayout.Height(28)))
+                if (GUILayout.Button("📋 Template / テンプレート", EditorStyles.miniButtonRight, GUILayout.Height(28)))
                     _currentTab = MainTab.Template;
                 GUI.color = prevColor;
-
-                // Properties タブ
-                if (_currentTab == MainTab.Properties)
-                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
-                if (GUILayout.Button("⚙ Properties / 詳細設定", EditorStyles.miniButtonMid, GUILayout.Height(28)))
-                    _currentTab = MainTab.Properties;
-                GUI.color = prevColor;
             }
-            EditorGUILayout.Space(4);
-
-            // === 現在のプリセット名表示（常に上部に表示） ===
-            EditorGUILayout.LabelField("Current: " + Presets[currentPreset].name + " — " + Presets[currentPreset].description, _descStyle);
             EditorGUILayout.Space(6);
 
             if (_currentTab == MainTab.Template)
             {
-                DrawTemplateTab(materialEditor, properties, material, templateProp, currentPreset);
+                DrawTemplateTab(material, templateProp, currentPreset);
             }
             else
             {
-                DrawPropertiesTab(materialEditor, properties, material);
+                DrawSettingsTab(materialEditor, properties, material);
             }
 
             if (EditorGUI.EndChangeCheck())
@@ -319,90 +433,9 @@ namespace MoruToon.Editor
         }
 
         // ============================================
-        // Template Tab
+        // Settings Tab（全プロパティ）
         // ============================================
-        private void DrawTemplateTab(MaterialEditor materialEditor, MaterialProperty[] properties, Material material, MaterialProperty templateProp, int currentPreset)
-        {
-            // === プリセット選択（グリッドボタン） ===
-            EditorGUILayout.LabelField("Select Template / テンプレートを選択", _presetLabelStyle);
-            EditorGUILayout.Space(4);
-
-            int columns = 3;
-            for (int i = 0; i < Presets.Length; i++)
-            {
-                if (i % columns == 0)
-                    EditorGUILayout.BeginHorizontal();
-
-                bool isActive = (currentPreset == i);
-                Color prevColor = GUI.color;
-
-                if (isActive)
-                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
-                else
-                    GUI.color = new Color(0.8f, 0.8f, 0.8f, 0.15f);
-
-                if (GUILayout.Button(Presets[i].name, EditorStyles.miniButton, GUILayout.Height(36)))
-                {
-                    currentPreset = i;
-                    ApplyPreset(material, i);
-                    if (templateProp != null)
-                        templateProp.floatValue = i;
-                }
-
-                GUI.color = prevColor;
-
-                if ((i + 1) % columns == 0 || i == Presets.Length - 1)
-                    EditorGUILayout.EndHorizontal();
-            }
-
-            // 選択中プリセットの詳細説明
-            EditorGUILayout.Space(8);
-            using (new GUILayout.VerticalScope(_boxOuterStyle))
-            {
-                EditorGUILayout.LabelField(Presets[currentPreset].name, _presetLabelStyle);
-                EditorGUILayout.Space(2);
-                EditorGUILayout.LabelField(Presets[currentPreset].description, _descStyle);
-                EditorGUILayout.Space(4);
-
-                // 有効な機能一覧
-                EditorGUILayout.LabelField("Enabled Features:", EditorStyles.miniLabel);
-                if (Presets[currentPreset].features.Length > 0)
-                {
-                    foreach (string f in Presets[currentPreset].features)
-                    {
-                        string displayName = f.Replace("_ON", "").Replace("_", " ").Trim();
-                        EditorGUILayout.LabelField("  ✓ " + displayName, EditorStyles.miniLabel);
-                    }
-                }
-                else
-                {
-                    EditorGUILayout.LabelField("  (Manual — toggle features in Properties tab)", EditorStyles.miniLabel);
-                }
-            }
-
-            EditorGUILayout.Space(6);
-
-            // Properties タブへのナビ
-            EditorGUILayout.HelpBox("テンプレートを選んだら「⚙ Properties」タブで細かい調整ができます。", MessageType.Info);
-
-            // === Main Color も Template タブから編集できる（最低限） ===
-            EditorGUILayout.Space(6);
-            GUILayout.Label("Main", _categoryStyle);
-            _showMain = Foldout("Main Color / メインカラー", _showMain);
-            if (_showMain)
-            {
-                EditorGUILayout.BeginVertical(_boxOuterStyle);
-                DrawProp(materialEditor, properties, "_Color");
-                DrawProp(materialEditor, properties, "_MainTex");
-                DrawProp(materialEditor, properties, "_Brightness");
-                EditorGUILayout.EndVertical();
-            }
-        }
-
-        // ============================================
-        // Properties Tab
-        // ============================================
-        private void DrawPropertiesTab(MaterialEditor materialEditor, MaterialProperty[] properties, Material material)
+        private void DrawSettingsTab(MaterialEditor materialEditor, MaterialProperty[] properties, Material material)
         {
             // === 検索ボックス ===
             using (new GUILayout.HorizontalScope())
@@ -413,7 +446,7 @@ namespace MoruToon.Editor
             EditorGUILayout.Space(6);
 
             // ============================================================
-            // Main Color
+            // Main
             // ============================================================
             GUILayout.Label("Main", _categoryStyle);
             _showMain = Foldout("Main Color / メインカラー", _showMain);
@@ -713,12 +746,121 @@ namespace MoruToon.Editor
         }
 
         // ============================================
-        // ApplyPreset（機能ON/OFF + ブレンドモード等も自動設定）
+        // Template Tab（テンプレート選択のみ）
         // ============================================
-        private void ApplyPreset(Material material, int presetIndex)
+        private void DrawTemplateTab(Material material, MaterialProperty templateProp, int currentPreset)
         {
-            PresetConfig preset = Presets[presetIndex];
+            List<PresetConfig> allPresets = AllPresets;
 
+            EditorGUILayout.LabelField("Select Template / テンプレートを選択", _presetLabelStyle);
+            EditorGUILayout.Space(4);
+
+            // プリセットボタン（グリッド）
+            int columns = 3;
+            for (int i = 0; i < allPresets.Count; i++)
+            {
+                if (i % columns == 0)
+                    EditorGUILayout.BeginHorizontal();
+
+                bool isActive = (currentPreset == i);
+                Color prevColor = GUI.color;
+
+                if (isActive)
+                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
+                else
+                    GUI.color = new Color(0.8f, 0.8f, 0.8f, 0.15f);
+
+                if (GUILayout.Button(allPresets[i].name, EditorStyles.miniButton, GUILayout.Height(36)))
+                {
+                    currentPreset = i;
+                    ApplyPreset(material, allPresets[i]);
+                    if (templateProp != null)
+                        templateProp.floatValue = i;
+                }
+
+                GUI.color = prevColor;
+
+                if ((i + 1) % columns == 0 || i == allPresets.Count - 1)
+                    EditorGUILayout.EndHorizontal();
+            }
+
+            // 選択中プリセットの詳細
+            if (currentPreset >= 0 && currentPreset < allPresets.Count)
+            {
+                EditorGUILayout.Space(8);
+                using (new GUILayout.VerticalScope(_boxOuterStyle))
+                {
+                    EditorGUILayout.LabelField(allPresets[currentPreset].name, _presetLabelStyle);
+                    EditorGUILayout.Space(2);
+                    EditorGUILayout.LabelField(allPresets[currentPreset].description, _descStyle);
+                    EditorGUILayout.Space(4);
+
+                    EditorGUILayout.LabelField("Enabled Features:", EditorStyles.miniLabel);
+                    if (allPresets[currentPreset].features.Length > 0)
+                    {
+                        foreach (string f in allPresets[currentPreset].features)
+                        {
+                            string displayName = f.Replace("_ON", "").Replace("_", " ").Trim();
+                            EditorGUILayout.LabelField("  ✓ " + displayName, EditorStyles.miniLabel);
+                        }
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField("  (変更なし)", EditorStyles.miniLabel);
+                    }
+                }
+            }
+
+            EditorGUILayout.Space(8);
+            DrawLine();
+
+            // === カスタムテンプレート保存 ===
+            EditorGUILayout.LabelField("Save Current as Template / 現在の設定をテンプレートに保存", _presetLabelStyle);
+            EditorGUILayout.Space(2);
+            using (new GUILayout.HorizontalScope())
+            {
+                _newPresetName = EditorGUILayout.TextField("Name", _newPresetName);
+                if (GUILayout.Button("Save", EditorStyles.miniButton, GUILayout.Width(60)))
+                {
+                    if (!string.IsNullOrEmpty(_newPresetName.Trim()))
+                    {
+                        SaveCustomPreset(_newPresetName.Trim(), material);
+                        _newPresetName = "";
+                        EditorUtility.DisplayDialog("MoruToon", "テンプレートを保存しました！\nTemplate saved!", "OK");
+                    }
+                }
+            }
+            EditorGUILayout.HelpBox("現在の設定（有効な機能・ブレンドモード等）をテンプレートとして保存できます。", MessageType.Info);
+
+            // カスタムテンプレート削除
+            if (_customPresets.Count > 0)
+            {
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("Custom Templates / カスタムテンプレート", EditorStyles.miniLabel);
+                for (int i = 0; i < _customPresets.Count; i++)
+                {
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField(_customPresets[i].name, EditorStyles.miniLabel);
+                        if (GUILayout.Button("Delete", EditorStyles.miniButton, GUILayout.Width(50)))
+                        {
+                            _customPresets.RemoveAt(i);
+                            SaveCustomPresetsToDisk();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.HelpBox("テンプレートを選ぶと、機能が自動でONになります。\n細かい調整は「⚙ Settings」タブで行ってください。", MessageType.Info);
+        }
+
+        // ============================================
+        // ApplyPreset（機能ON/OFF + ブレンドモード設定）
+        // ============================================
+        private void ApplyPreset(Material material, PresetConfig preset)
+        {
             // 全機能オフ
             foreach (string t in AllFeatures)
             {
@@ -743,7 +885,7 @@ namespace MoruToon.Editor
                     material.DisableKeyword(t);
             }
 
-            // ブレンドモード等も自動設定
+            // ブレンドモード等
             if (material.HasProperty("_SrcBlend"))
                 material.SetFloat("_SrcBlend", preset.srcBlend);
             if (material.HasProperty("_DstBlend"))
