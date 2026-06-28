@@ -21,6 +21,21 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Update package.json Version
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          echo "Updating package.json version to $VERSION"
+          python3 -c "
+          import json
+          with open('package.json', 'r') as f:
+              pkg = json.load(f)
+          pkg['version'] = '$VERSION'
+          with open('package.json', 'w') as f:
+              json.dump(pkg, f, indent=4, ensure_ascii=False)
+          print(f'package.json version set to: {pkg[\"version\"]}')
+          "
+          cat package.json | head -5
+
       - name: Pack Package
         run: |
           zip -r "com.moruton.morutoon-${{ steps.version.outputs.VERSION }}.zip" . \
