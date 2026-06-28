@@ -148,6 +148,12 @@ namespace MoruToon.Editor
         };
 
         // ============================================
+        // Tab State
+        // ============================================
+        private enum MainTab { Template, Properties }
+        private MainTab _currentTab = MainTab.Template;
+
+        // ============================================
         // Foldout States
         // ============================================
         private bool _showMain = true;
@@ -272,20 +278,55 @@ namespace MoruToon.Editor
 
             EditorGUI.BeginChangeCheck();
 
-            // === 検索ボックス ===
+            // === タブバー ===
             EditorGUILayout.Space(2);
             using (new GUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField("🔍", GUILayout.Width(20));
-                _searchWord = EditorGUILayout.TextField(_searchWord, _searchStyle);
+                // Template タブ
+                Color prevColor = GUI.color;
+                if (_currentTab == MainTab.Template)
+                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
+                if (GUILayout.Button("📋 Template / テンプレート", EditorStyles.miniButtonMid, GUILayout.Height(28)))
+                    _currentTab = MainTab.Template;
+                GUI.color = prevColor;
+
+                // Properties タブ
+                if (_currentTab == MainTab.Properties)
+                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
+                if (GUILayout.Button("⚙ Properties / 詳細設定", EditorStyles.miniButtonMid, GUILayout.Height(28)))
+                    _currentTab = MainTab.Properties;
+                GUI.color = prevColor;
             }
+            EditorGUILayout.Space(4);
+
+            // === 現在のプリセット名表示（常に上部に表示） ===
+            EditorGUILayout.LabelField("Current: " + Presets[currentPreset].name + " — " + Presets[currentPreset].description, _descStyle);
             EditorGUILayout.Space(6);
 
-            // === プリセット選択（ボタン式タブ） ===
-            EditorGUILayout.LabelField("Template / テンプレート", _presetLabelStyle);
-            EditorGUILayout.Space(2);
+            if (_currentTab == MainTab.Template)
+            {
+                DrawTemplateTab(materialEditor, properties, material, templateProp, currentPreset);
+            }
+            else
+            {
+                DrawPropertiesTab(materialEditor, properties, material);
+            }
 
-            // プリセットボタンをグリッド配置
+            if (EditorGUI.EndChangeCheck())
+            {
+                materialEditor.PropertiesChanged();
+            }
+        }
+
+        // ============================================
+        // Template Tab
+        // ============================================
+        private void DrawTemplateTab(MaterialEditor materialEditor, MaterialProperty[] properties, Material material, MaterialProperty templateProp, int currentPreset)
+        {
+            // === プリセット選択（グリッドボタン） ===
+            EditorGUILayout.LabelField("Select Template / テンプレートを選択", _presetLabelStyle);
+            EditorGUILayout.Space(4);
+
             int columns = 3;
             for (int i = 0; i < Presets.Length; i++)
             {
@@ -300,7 +341,7 @@ namespace MoruToon.Editor
                 else
                     GUI.color = new Color(0.8f, 0.8f, 0.8f, 0.15f);
 
-                if (GUILayout.Button(Presets[i].name, EditorStyles.miniButton, GUILayout.Height(28)))
+                if (GUILayout.Button(Presets[i].name, EditorStyles.miniButton, GUILayout.Height(36)))
                 {
                     currentPreset = i;
                     ApplyPreset(material, i);
@@ -314,10 +355,62 @@ namespace MoruToon.Editor
                     EditorGUILayout.EndHorizontal();
             }
 
-            // 選択中プリセットの説明
-            EditorGUILayout.Space(2);
-            EditorGUILayout.LabelField("▸ " + Presets[currentPreset].description, _descStyle);
+            // 選択中プリセットの詳細説明
             EditorGUILayout.Space(8);
+            using (new GUILayout.VerticalScope(_boxOuterStyle))
+            {
+                EditorGUILayout.LabelField(Presets[currentPreset].name, _presetLabelStyle);
+                EditorGUILayout.Space(2);
+                EditorGUILayout.LabelField(Presets[currentPreset].description, _descStyle);
+                EditorGUILayout.Space(4);
+
+                // 有効な機能一覧
+                EditorGUILayout.LabelField("Enabled Features:", EditorStyles.miniLabel);
+                if (Presets[currentPreset].features.Length > 0)
+                {
+                    foreach (string f in Presets[currentPreset].features)
+                    {
+                        string displayName = f.Replace("_ON", "").Replace("_", " ").Trim();
+                        EditorGUILayout.LabelField("  ✓ " + displayName, EditorStyles.miniLabel);
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("  (Manual — toggle features in Properties tab)", EditorStyles.miniLabel);
+                }
+            }
+
+            EditorGUILayout.Space(6);
+
+            // Properties タブへのナビ
+            EditorGUILayout.HelpBox("テンプレートを選んだら「⚙ Properties」タブで細かい調整ができます。", MessageType.Info);
+
+            // === Main Color も Template タブから編集できる（最低限） ===
+            EditorGUILayout.Space(6);
+            GUILayout.Label("Main", _categoryStyle);
+            _showMain = Foldout("Main Color / メインカラー", _showMain);
+            if (_showMain)
+            {
+                EditorGUILayout.BeginVertical(_boxOuterStyle);
+                DrawProp(materialEditor, properties, "_Color");
+                DrawProp(materialEditor, properties, "_MainTex");
+                DrawProp(materialEditor, properties, "_Brightness");
+                EditorGUILayout.EndVertical();
+            }
+        }
+
+        // ============================================
+        // Properties Tab
+        // ============================================
+        private void DrawPropertiesTab(MaterialEditor materialEditor, MaterialProperty[] properties, Material material)
+        {
+            // === 検索ボックス ===
+            using (new GUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("🔍", GUILayout.Width(20));
+                _searchWord = EditorGUILayout.TextField(_searchWord, _searchStyle);
+            }
+            EditorGUILayout.Space(6);
 
             // ============================================================
             // Main Color
@@ -616,11 +709,6 @@ namespace MoruToon.Editor
                 if (GUILayout.Button("📖 Documentation", EditorStyles.miniButton))
                     Application.OpenURL("https://github.com/moruton1119/MoruToon#readme");
                 GUILayout.FlexibleSpace();
-            }
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                materialEditor.PropertiesChanged();
             }
         }
 
