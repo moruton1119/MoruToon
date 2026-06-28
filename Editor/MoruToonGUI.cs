@@ -6,33 +6,131 @@ namespace MoruToon.Editor
 {
     /// <summary>
     /// MoruToon Custom ShaderGUI
-    /// lilToon風のFoldoutベースUI
+    /// lilToon風のFoldoutベースUI + 用途別プリセット
     /// </summary>
     public class MoruToonGUI : ShaderGUI
     {
         // ============================================
-        // Template Presets
+        // 用途別プリセット（ユーザーが「作りたいもの」で選べる）
         // ============================================
-        private static readonly string[] PresetNames =
+        private class PresetConfig
         {
-            "Basic", "UV Scroll", "Dissolve", "Flipbook",
-            "Layer Blend", "Soft Particle", "Stencil Portal",
-            "Particle FX", "Custom"
+            public string name;
+            public string description;
+            public string[] features;
+            public float srcBlend = 5;    // SrcAlpha
+            public float dstBlend = 10;   // One (Additive)
+            public float zWrite = 0;
+            public float cull = 0;        // Off
+        }
+
+        private static readonly PresetConfig[] Presets =
+        {
+            // --- Particle系 ---
+            new PresetConfig
+            {
+                name = "🔥 Fire / 炎",
+                description = "フリップブック炎アニメ＋発光パルス＋ソフトパーティクル",
+                features = new[] { "_FLIPBOOK_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "❄️ Ice / 氷",
+                description = "UVスクロール＋発光＋ソフトパーティクル",
+                features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "✨ Light / 光",
+                description = "発光パルス＋ソフトパーティクル＋ライフタイムフェード",
+                features = new[] { "_EMISSION_ON", "_EMISSION_PULSE", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "⚡ Energy / エネルギー",
+                description = "UVスクロール＋回転＋発光パルス＋カラーランプ＋HUE Shift",
+                features = new[] { "_UVSCROLL_ON", "_ROTATION_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_COLORRAMP_ON", "_HUESHIFT_ON", "_SOFTPARTICLES_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "💨 Smoke / 煙",
+                description = "フリップブック煙アニメ＋ソフトパーティクル",
+                features = new[] { "_FLIPBOOK_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
+                srcBlend = 2, dstBlend = 0, // One*Zero = overwrite alpha blend風
+            },
+            new PresetConfig
+            {
+                name = "🌟 Trail / トレイル",
+                description = "UVスクロール＋発光＋カラーランプ＋ソフトパーティクル",
+                features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_COLORRAMP_ON", "_SOFTPARTICLES_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "💥 Explosion / 爆発",
+                description = "フリップブック爆発アニメ＋発光＋ソフトパーティクル",
+                features = new[] { "_FLIPBOOK_ON", "_EMISSION_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "🔮 Magic Circle / 魔法陣",
+                description = "UVスクロール＋回転＋発光パルス＋レイヤー合成",
+                features = new[] { "_UVSCROLL_ON", "_ROTATION_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_LAYERBLEND_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            // --- Gimmick系 ---
+            new PresetConfig
+            {
+                name = "🚪 Stencil Portal / ポータル",
+                description = "ディゾルブ＋発光＋UVスクロール。ステンシルでポータル表現",
+                features = new[] { "_DISSOLVE_ON", "_EMISSION_ON", "_UVSCROLL_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "👋 Dissolve / 消失",
+                description = "ライフタイム連携ディゾルブ＋縁発光",
+                features = new[] { "_DISSOLVE_ON", "_DISSOLVE_LIFETIME", "_EMISSION_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "🎭 Hologram / ホログラム",
+                description = "UVスクロール＋発光＋HUE Shift＋カラーランプ＋距離フェード",
+                features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_HUESHIFT_ON", "_COLORRAMP_ON", "_DISTANCEFADE_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            // --- Basic ---
+            new PresetConfig
+            {
+                name = "⚪ Basic / 基本",
+                description = "最小構成。発光のみ",
+                features = new[] { "_EMISSION_ON" },
+                srcBlend = 5, dstBlend = 10,
+            },
+            new PresetConfig
+            {
+                name = "⚙ Custom / カスタム",
+                description = "全機能を手動でON/OFF",
+                features = new string[] { },
+            },
         };
 
-        private static readonly string[][] PresetFeatures =
+        private static string[] PresetDisplayNames
         {
-            new[] { "_EMISSION_ON" },
-            new[] { "_UVSCROLL_ON", "_ROTATION_ON", "_EMISSION_ON" },
-            new[] { "_DISSOLVE_ON", "_DISSOLVE_LIFETIME", "_EMISSION_ON" },
-            new[] { "_FLIPBOOK_ON", "_EMISSION_ON" },
-            new[] { "_LAYERBLEND_ON", "_UVSCROLL_ON", "_EMISSION_ON" },
-            new[] { "_SOFTPARTICLES_ON", "_EMISSION_ON" },
-            new[] { "_DISSOLVE_ON", "_EMISSION_ON" },
-            new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_SOFTPARTICLES_ON",
-                    "_LIFETIMEFADE_ON", "_COLORRAMP_ON", "_HUESHIFT_ON" },
-            new string[] { }
-        };
+            get
+            {
+                string[] names = new string[Presets.Length];
+                for (int i = 0; i < Presets.Length; i++)
+                    names[i] = Presets[i].name;
+                return names;
+            }
+        }
 
         private static readonly string[] AllFeatures =
         {
@@ -50,7 +148,7 @@ namespace MoruToon.Editor
         };
 
         // ============================================
-        // Foldout States (永続化されてリロードで初期化されるのは許容)
+        // Foldout States
         // ============================================
         private bool _showMain = true;
         private bool _showUVScroll;
@@ -69,21 +167,20 @@ namespace MoruToon.Editor
         private bool _showAdvanced;
 
         // ============================================
-        // Styles (lilToon風)
+        // Styles
         // ============================================
         private GUIStyle _foldoutStyle;
         private GUIStyle _categoryStyle;
         private GUIStyle _boxOuterStyle;
-        private GUIStyle _boxInnerStyle;
+        private GUIStyle _presetLabelStyle;
+        private GUIStyle _descStyle;
         private GUIStyle _searchStyle;
-        private Texture2D _lineTex;
         private string _searchWord = "";
 
         private void InitStyles()
         {
             if (_foldoutStyle == null)
             {
-                // ShurikenModuleTitle風のFoldoutスタイル
                 _foldoutStyle = new GUIStyle("ShurikenModuleTitle")
                 {
                     font = EditorStyles.label.font,
@@ -110,23 +207,24 @@ namespace MoruToon.Editor
                     margin = new RectOffset(2, 2, 2, 2)
                 };
             }
-            if (_boxInnerStyle == null)
+            if (_presetLabelStyle == null)
             {
-                _boxInnerStyle = new GUIStyle(GUI.skin.textArea)
+                _presetLabelStyle = new GUIStyle(EditorStyles.boldLabel)
                 {
-                    padding = new RectOffset(8, 8, 4, 4),
-                    margin = new RectOffset(0, 0, 2, 2)
+                    fontSize = 12,
+                };
+            }
+            if (_descStyle == null)
+            {
+                _descStyle = new GUIStyle(EditorStyles.miniLabel)
+                {
+                    fontStyle = FontStyle.Italic,
+                    normal = { textColor = new Color(0.6f, 0.7f, 0.8f) }
                 };
             }
             if (_searchStyle == null)
             {
                 _searchStyle = new GUIStyle(EditorStyles.toolbarSearchField);
-            }
-            if (_lineTex == null)
-            {
-                _lineTex = new Texture2D(1, 1);
-                _lineTex.SetPixel(0, 0, new Color(0.3f, 0.3f, 0.3f, 0.5f));
-                _lineTex.Apply();
             }
         }
 
@@ -137,9 +235,6 @@ namespace MoruToon.Editor
             EditorGUILayout.Space(2);
         }
 
-        // ============================================
-        // Foldout描画（lilToon風のクリック展開ボックス）
-        // ============================================
         private bool Foldout(string title, bool display)
         {
             Rect rect = GUILayoutUtility.GetRect(16f, 24f, _foldoutStyle);
@@ -147,21 +242,16 @@ namespace MoruToon.Editor
             rect.x -= 8f;
             GUI.Box(rect, title, _foldoutStyle);
 
-            // 矢印アイコン
             Rect toggleRect = new Rect(rect.x + 4f, rect.y + 4f, 13f, 13f);
             if (Event.current.type == EventType.Repaint)
-            {
                 EditorStyles.foldout.Draw(toggleRect, false, false, display, false);
-            }
 
-            // クリック判定
             rect.width -= 24;
             if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
             {
                 display = !display;
                 Event.current.Use();
             }
-
             return display;
         }
 
@@ -176,6 +266,9 @@ namespace MoruToon.Editor
             InitStyles();
 
             MaterialProperty templateProp = FindProperty("_TemplateMode", properties, false);
+            int currentPreset = templateProp != null ? (int)templateProp.floatValue : 0;
+            // 範囲外チェック（プリセット数が変わった時の対策）
+            if (currentPreset < 0 || currentPreset >= Presets.Length) currentPreset = 0;
 
             EditorGUI.BeginChangeCheck();
 
@@ -186,22 +279,45 @@ namespace MoruToon.Editor
                 EditorGUILayout.LabelField("🔍", GUILayout.Width(20));
                 _searchWord = EditorGUILayout.TextField(_searchWord, _searchStyle);
             }
-            EditorGUILayout.Space(4);
-
-            // === プリセット選択 ===
-            using (new GUILayout.HorizontalScope())
-            {
-                EditorGUILayout.LabelField("Preset", GUILayout.Width(50));
-                int currentPreset = templateProp != null ? (int)templateProp.floatValue : 0;
-                int newPreset = EditorGUILayout.Popup(currentPreset, PresetNames);
-                if (newPreset != currentPreset)
-                {
-                    ApplyPreset(material, newPreset);
-                    if (templateProp != null)
-                        templateProp.floatValue = newPreset;
-                }
-            }
             EditorGUILayout.Space(6);
+
+            // === プリセット選択（ボタン式タブ） ===
+            EditorGUILayout.LabelField("Template / テンプレート", _presetLabelStyle);
+            EditorGUILayout.Space(2);
+
+            // プリセットボタンをグリッド配置
+            int columns = 3;
+            for (int i = 0; i < Presets.Length; i++)
+            {
+                if (i % columns == 0)
+                    EditorGUILayout.BeginHorizontal();
+
+                bool isActive = (currentPreset == i);
+                Color prevColor = GUI.color;
+
+                if (isActive)
+                    GUI.color = new Color(0.35f, 0.75f, 1f, 0.3f);
+                else
+                    GUI.color = new Color(0.8f, 0.8f, 0.8f, 0.15f);
+
+                if (GUILayout.Button(Presets[i].name, EditorStyles.miniButton, GUILayout.Height(28)))
+                {
+                    currentPreset = i;
+                    ApplyPreset(material, i);
+                    if (templateProp != null)
+                        templateProp.floatValue = i;
+                }
+
+                GUI.color = prevColor;
+
+                if ((i + 1) % columns == 0 || i == Presets.Length - 1)
+                    EditorGUILayout.EndHorizontal();
+            }
+
+            // 選択中プリセットの説明
+            EditorGUILayout.Space(2);
+            EditorGUILayout.LabelField("▸ " + Presets[currentPreset].description, _descStyle);
+            EditorGUILayout.Space(8);
 
             // ============================================================
             // Main Color
@@ -269,25 +385,28 @@ namespace MoruToon.Editor
             // ============================================================
             GUILayout.Label("Color / Emission", _categoryStyle);
 
-            _showEmission = Foldout("Emission / 発光", _showEmission);
-            if (_showEmission)
+            if (IsOn(material, "_EMISSION_ON") || IsInSearch("emission"))
             {
-                EditorGUILayout.BeginVertical(_boxOuterStyle);
-                DrawToggleProp(materialEditor, properties, "_EMISSION_ON");
-                if (IsOn(material, "_EMISSION_ON"))
+                _showEmission = Foldout("Emission / 発光", _showEmission);
+                if (_showEmission)
                 {
-                    DrawProp(materialEditor, properties, "_EmissionMap");
-                    DrawProp(materialEditor, properties, "_EmissionColor");
-                    DrawLine();
-                    DrawToggleProp(materialEditor, properties, "_EMISSION_PULSE");
-                    if (IsOn(material, "_EMISSION_PULSE"))
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_EMISSION_ON");
+                    if (IsOn(material, "_EMISSION_ON"))
                     {
-                        DrawProp(materialEditor, properties, "_PulseSpeed");
-                        DrawProp(materialEditor, properties, "_PulseMin");
-                        DrawProp(materialEditor, properties, "_PulseMax");
+                        DrawProp(materialEditor, properties, "_EmissionMap");
+                        DrawProp(materialEditor, properties, "_EmissionColor");
+                        DrawLine();
+                        DrawToggleProp(materialEditor, properties, "_EMISSION_PULSE");
+                        if (IsOn(material, "_EMISSION_PULSE"))
+                        {
+                            DrawProp(materialEditor, properties, "_PulseSpeed");
+                            DrawProp(materialEditor, properties, "_PulseMin");
+                            DrawProp(materialEditor, properties, "_PulseMax");
+                        }
                     }
+                    EditorGUILayout.EndVertical();
                 }
-                EditorGUILayout.EndVertical();
             }
 
             if (IsOn(material, "_COLORRAMP_ON") || IsInSearch("ramp"))
@@ -469,7 +588,6 @@ namespace MoruToon.Editor
                 EditorGUILayout.EndVertical();
             }
 
-            // === Advanced: 機能トグル ===
             _showAdvanced = Foldout("Feature Toggles / 機能の個別ON/OFF", _showAdvanced);
             if (_showAdvanced)
             {
@@ -477,7 +595,6 @@ namespace MoruToon.Editor
                 EditorGUILayout.LabelField("Enable / Disable individual features:", EditorStyles.miniLabel);
                 EditorGUILayout.Space(2);
 
-                // 2カラムでトグルを並べる
                 for (int i = 0; i < AllFeatures.Length; i += 2)
                 {
                     using (new GUILayout.HorizontalScope())
@@ -508,23 +625,27 @@ namespace MoruToon.Editor
         }
 
         // ============================================
-        // Helpers
+        // ApplyPreset（機能ON/OFF + ブレンドモード等も自動設定）
         // ============================================
-
         private void ApplyPreset(Material material, int presetIndex)
         {
+            PresetConfig preset = Presets[presetIndex];
+
+            // 全機能オフ
             foreach (string t in AllFeatures)
             {
                 if (material.HasProperty(t))
                     material.SetFloat(t, 0);
             }
 
-            foreach (string t in PresetFeatures[presetIndex])
+            // プリセットの機能をオン
+            foreach (string t in preset.features)
             {
                 if (material.HasProperty(t))
                     material.SetFloat(t, 1);
             }
 
+            // キーワード同期
             foreach (string t in AllFeatures)
             {
                 bool on = material.HasProperty(t) && material.GetFloat(t) > 0.5f;
@@ -534,9 +655,22 @@ namespace MoruToon.Editor
                     material.DisableKeyword(t);
             }
 
+            // ブレンドモード等も自動設定
+            if (material.HasProperty("_SrcBlend"))
+                material.SetFloat("_SrcBlend", preset.srcBlend);
+            if (material.HasProperty("_DstBlend"))
+                material.SetFloat("_DstBlend", preset.dstBlend);
+            if (material.HasProperty("_ZWrite"))
+                material.SetFloat("_ZWrite", preset.zWrite);
+            if (material.HasProperty("_Cull"))
+                material.SetFloat("_Cull", preset.cull);
+
             EditorUtility.SetDirty(material);
         }
 
+        // ============================================
+        // Helpers
+        // ============================================
         private bool IsOn(Material mat, string prop)
         {
             return mat.HasProperty(prop) && mat.GetFloat(prop) > 0.5f;
@@ -550,12 +684,6 @@ namespace MoruToon.Editor
 
         private void DrawProp(MaterialEditor ed, MaterialProperty[] props, string name)
         {
-            if (!string.IsNullOrEmpty(_searchWord))
-            {
-                if (!name.ToLower().Contains(_searchWord.ToLower()))
-                    return;
-            }
-
             MaterialProperty p = FindProperty(name, props, false);
             if (p != null)
                 ed.ShaderProperty(p, p.displayName);
