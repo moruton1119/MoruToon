@@ -692,20 +692,42 @@ namespace MoruToon.Editor
             // ============================================================
             GUILayout.Label("Advanced", _categoryStyle);
 
-            _showStencil = Foldout("Stencil / ステンシル", _showStencil);
+            _showStencil = Foldout("ステンシル / Stencil（ポータル・マスキング）", _showStencil);
             if (_showStencil)
             {
                 EditorGUILayout.BeginVertical(_boxOuterStyle);
+                EditorGUILayout.HelpBox("ステンシルは「特定の場所だけに描画する」ための機能です。\nポータル効果やマスキングに使います。", MessageType.Info);
+                DrawLine();
                 DrawProp(materialEditor, properties, "_StencilRef");
                 DrawProp(materialEditor, properties, "_StencilComp");
                 DrawProp(materialEditor, properties, "_StencilPass");
                 EditorGUILayout.EndVertical();
             }
 
-            _showRendering = Foldout("Rendering / 描画設定", _showRendering);
+            _showRendering = Foldout("描画設定 / Rendering", _showRendering);
             if (_showRendering)
             {
                 EditorGUILayout.BeginVertical(_boxOuterStyle);
+
+                // === ブレンドモードプリセット ===
+                EditorGUILayout.LabelField("表示方法プリセット / Blend Preset", EditorStyles.miniLabel);
+                using (new GUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("✨ 加算（光る）", EditorStyles.miniButton))
+                    {
+                        SetBlendMode(material, 5, 10); // SrcAlpha, One
+                    }
+                    if (GUILayout.Button("🌫️ 半透明", EditorStyles.miniButton))
+                    {
+                        SetBlendMode(material, 5, 10 - 1); // SrcAlpha, OneMinusSrcAlpha = 6
+                    }
+                    if (GUILayout.Button("⬛ 上書き", EditorStyles.miniButton))
+                    {
+                        SetBlendMode(material, 1, 0); // One, Zero
+                    }
+                }
+                DrawLine();
+
                 DrawProp(materialEditor, properties, "_SrcBlend");
                 DrawProp(materialEditor, properties, "_DstBlend");
                 DrawLine();
@@ -901,6 +923,15 @@ namespace MoruToon.Editor
         // ============================================
         // Helpers
         // ============================================
+        private void SetBlendMode(Material material, float src, float dst)
+        {
+            if (material.HasProperty("_SrcBlend"))
+                material.SetFloat("_SrcBlend", src);
+            if (material.HasProperty("_DstBlend"))
+                material.SetFloat("_DstBlend", dst);
+            EditorUtility.SetDirty(material);
+        }
+
         private bool IsOn(Material mat, string prop)
         {
             return mat.HasProperty(prop) && mat.GetFloat(prop) > 0.5f;
