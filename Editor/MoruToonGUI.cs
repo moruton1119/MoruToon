@@ -719,7 +719,7 @@ namespace MoruToon.Editor
                     }
                     if (GUILayout.Button("🌫️ 半透明", EditorStyles.miniButton))
                     {
-                        SetBlendMode(material, 5, 10 - 1); // SrcAlpha, OneMinusSrcAlpha = 6
+                        SetBlendMode(material, 5, 6); // SrcAlpha, OneMinusSrcAlpha
                     }
                     if (GUILayout.Button("⬛ 上書き", EditorStyles.miniButton))
                     {

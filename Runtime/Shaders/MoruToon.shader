@@ -118,17 +118,16 @@ Shader "MoruToon/Particle"
         // Stencil / ステンシル（ポータル・マスキング）
         // ============================================
         _StencilRef ("ステンシル番号 / Stencil Ref", Range(0,255)) = 1
-        [Enum(常に描画,8,同じ番号のみ描画,3,違う番号のみ描画,6)] _StencilComp ("ステンシル判定 / Stencil Compare", Float) = 8
-        [Enum(何もしない,0,番号を書き込む,2)] _StencilPass ("ステンシル書込み / Stencil Pass", Float) = 2
+        [Enum(Always,8,Equal,3,NotEqual,6)] _StencilComp ("ステンシル判定 / Stencil Compare", Float) = 8
+        [Enum(Keep,0,Replace,2)] _StencilPass ("ステンシル書込み / Stencil Pass", Float) = 2
 
         // ============================================
         // Rendering / 描画設定
         // ============================================
-        // ブレンドモード（表示方法）を分かりやすい日本語で
-        [Enum(透明度,5,1.0(全体),2,0(なし),3)] _SrcBlend ("ブレンド元 / Src Blend", Float) = 5
-        [Enum(1.0(加算),2,残す,10,0(上書き),0)] _DstBlend ("ブレンド先 / Dst Blend", Float) = 10
-        [Enum(書き込まない,0,書き込む,1)] _ZWrite ("奥行き書込み / ZWrite", Float) = 0
-        [Enum(両面表示,0,表面のみ,2,裏面のみ,1)] _Cull ("表示面 / Cull Mode", Float) = 0
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("ブレンド元 / Src Blend", Float) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("ブレンド先 / Dst Blend", Float) = 10
+        [Enum(Off,0,On,1)] _ZWrite ("奥行き書込み / ZWrite", Float) = 0
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("表示面 / Cull Mode", Float) = 0
     }
 
     SubShader
