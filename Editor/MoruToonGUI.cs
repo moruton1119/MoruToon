@@ -143,7 +143,8 @@ namespace MoruToon.Editor
             "_HUESHIFT_ON",
             "_DISTANCEFADE_ON",
             "_LIFETIMEFADE_ON",
-            "_MASK_ON"
+            "_MASK_ON",
+            "_BLACKTRANSPARENCY_ON"
         };
 
         // ============================================
@@ -167,6 +168,7 @@ namespace MoruToon.Editor
         private bool _showDistanceFade;
         private bool _showLifetimeFade;
         private bool _showMask;
+        private bool _showBlackTransparency;
         private bool _showStencil;
         private bool _showRendering;
         private bool _showAdvanced;
@@ -661,6 +663,23 @@ namespace MoruToon.Editor
                     {
                         DrawProp(materialEditor, properties, "_LifetimeFadeIn");
                         DrawProp(materialEditor, properties, "_LifetimeFadeOut");
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            if (IsOn(material, "_BLACKTRANSPARENCY_ON") || IsInSearch("black"))
+            {
+                _showMask = Foldout("Black Transparency / 黒透過", _showMask);
+                if (_showMask)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_BLACKTRANSPARENCY_ON");
+                    if (IsOn(material, "_BLACKTRANSPARENCY_ON"))
+                    {
+                        EditorGUILayout.HelpBox("テクスチャの黒い部分を透明にします。\\n黒背景のテクスチャを使う時にONにしてください。", MessageType.Info);
+                        DrawProp(materialEditor, properties, "_BlackThreshold");
+                        DrawProp(materialEditor, properties, "_BlackSoftness");
                     }
                     EditorGUILayout.EndVertical();
                 }

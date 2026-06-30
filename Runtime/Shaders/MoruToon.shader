@@ -115,6 +115,13 @@ Shader "MoruToon/Particle"
         _HideMaskStrength ("Hide Mask Strength", Range(0,1)) = 1.0
 
         // ============================================
+        // Black Transparency / 黒透過
+        // ============================================
+        [Toggle] _BLACKTRANSPARENCY_ON ("Black Transparency", Float) = 0
+        _BlackThreshold ("Threshold / 閾値", Range(0,1)) = 0.1
+        _BlackSoftness ("Softness / 柔らかさ", Range(0,1)) = 0.3
+
+        // ============================================
         // Stencil / ステンシル（ポータル・マスキング）
         // ============================================
         _StencilRef ("ステンシル番号 / Stencil Ref", Range(0,255)) = 1
@@ -179,6 +186,7 @@ Shader "MoruToon/Particle"
             #pragma shader_feature _ _DISTANCEFADE_ON
             #pragma shader_feature _ _LIFETIMEFADE_ON
             #pragma shader_feature _ _MASK_ON
+            #pragma shader_feature _ _BLACKTRANSPARENCY_ON
 
             #include "UnityCG.cginc"
             #include "Includes/moru_common.hlsl"
@@ -236,6 +244,10 @@ Shader "MoruToon/Particle"
             float _VisibleMaskStrength;
             sampler2D _HideMaskTex;
             float _HideMaskStrength;
+
+            // Black Transparency
+            float _BlackThreshold;
+            float _BlackSoftness;
 
             // ============================================
             // Vertex
@@ -319,6 +331,15 @@ Shader "MoruToon/Particle"
                     float visMask = moruApplyMask(uv, _VisibleMaskTex, _VisibleMaskStrength);
                     float hideMask = moruApplyHideMask(uv, _HideMaskTex, _HideMaskStrength);
                     col.a *= visMask * hideMask;
+                }
+                #endif
+
+                // --- Black Transparency / 黒透過 ---
+                #if defined(_BLACKTRANSPARENCY_ON)
+                {
+                    float luminance = max(col.r, max(col.g, col.b));
+                    float blackAlpha = 1.0 - smoothstep(_BlackThreshold, _BlackThreshold + _BlackSoftness + 0.001, luminance);
+                    col.a *= 1.0 - blackAlpha;
                 }
                 #endif
 

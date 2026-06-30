@@ -218,6 +218,16 @@ inline float moruLifetimeDissolveAmount(float agePercent, float startDelay, floa
 }
 
 // -------------------------------------
+// Black Transparency
+// テクスチャの黒い部分を透明にする
+// -------------------------------------
+inline float moruBlackTransparency(fixed3 color, float threshold, float softness)
+{
+    float luminance = max(color.r, max(color.g, color.b));
+    return 1.0 - smoothstep(threshold, threshold + softness + 0.001, luminance);
+}
+
+// -------------------------------------
 // Mask (Visible / Hide)
 // -------------------------------------
 inline float moruApplyMask(float2 uv, sampler2D maskTex, float strength)
