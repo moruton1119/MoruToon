@@ -668,23 +668,6 @@ namespace MoruToon.Editor
                 }
             }
 
-            if (IsOn(material, "_BLACKTRANSPARENCY_ON") || IsInSearch("black"))
-            {
-                _showMask = Foldout("Black Transparency / 黒透過", _showMask);
-                if (_showMask)
-                {
-                    EditorGUILayout.BeginVertical(_boxOuterStyle);
-                    DrawToggleProp(materialEditor, properties, "_BLACKTRANSPARENCY_ON");
-                    if (IsOn(material, "_BLACKTRANSPARENCY_ON"))
-                    {
-                        EditorGUILayout.HelpBox("テクスチャの黒い部分を透明にします。\\n黒背景のテクスチャを使う時にONにしてください。", MessageType.Info);
-                        DrawProp(materialEditor, properties, "_BlackThreshold");
-                        DrawProp(materialEditor, properties, "_BlackSoftness");
-                    }
-                    EditorGUILayout.EndVertical();
-                }
-            }
-
             if (IsOn(material, "_MASK_ON") || IsInSearch("mask"))
             {
                 _showMask = Foldout("Mask / マスク", _showMask);
@@ -731,32 +714,31 @@ namespace MoruToon.Editor
                 // === ブレンドモードプリセット ===
                 EditorGUILayout.LabelField("表示方法 / Blend Mode", EditorStyles.miniLabel);
 
-                // よく使う（2列）
                 using (new GUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("✨ 加算（光る）", EditorStyles.miniButton, GUILayout.Height(24), GUILayout.ExpandWidth(true)))
-                        SetBlendMode(material, 5, 10); // SrcAlpha, One
+                        SetBlendMode(material, 5, 10);
                     if (GUILayout.Button("🌫️ 半透明", EditorStyles.miniButton, GUILayout.Height(24), GUILayout.ExpandWidth(true)))
-                        SetBlendMode(material, 5, 6);  // SrcAlpha, OneMinusSrcAlpha
+                        SetBlendMode(material, 5, 6);
                 }
                 using (new GUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("⬛ 上書き（不透明）", EditorStyles.miniButton, GUILayout.Height(24), GUILayout.ExpandWidth(true)))
-                        SetBlendMode(material, 1, 0);  // One, Zero
+                        SetBlendMode(material, 1, 0);
                     if (GUILayout.Button("🎨 乗算（暗く）", EditorStyles.miniButton, GUILayout.Height(24), GUILayout.ExpandWidth(true)))
-                        SetBlendMode(material, 2, 0);  // DstColor, Zero
+                        SetBlendMode(material, 2, 0);
                 }
                 using (new GUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("🔆 スクリーン（明るく）", EditorStyles.miniButton, GUILayout.Height(24), GUILayout.ExpandWidth(true)))
-                        SetBlendMode(material, 4, 1);  // OneMinusDstColor, One
+                        SetBlendMode(material, 4, 1);
                     if (GUILayout.Button("📖 乗算半透明", EditorStyles.miniButton, GUILayout.Height(24), GUILayout.ExpandWidth(true)))
-                        SetBlendMode(material, 2, 6);  // DstColor, OneMinusSrcAlpha
+                        SetBlendMode(material, 2, 6);
                 }
 
                 DrawLine();
 
-                // クイック設定（2列）
+                // クイック設定
                 EditorGUILayout.LabelField("クイック設定 / Quick Set", EditorStyles.miniLabel);
                 using (new GUILayout.HorizontalScope())
                 {
@@ -780,7 +762,23 @@ namespace MoruToon.Editor
                         if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0);
                         if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0);
                     }
-                    GUILayout.Space(0); // 余白用
+                    GUILayout.Space(0);
+                }
+
+                DrawLine();
+
+                // === 黒透過トグル ===
+                DrawToggleProp(materialEditor, properties, "_BLACKTRANSPARENCY_ON");
+                if (IsOn(material, "_BLACKTRANSPARENCY_ON"))
+                {
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        DrawProp(materialEditor, properties, "_BlackThreshold");
+                    }
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        DrawProp(materialEditor, properties, "_BlackSoftness");
+                    }
                 }
 
                 DrawLine();
