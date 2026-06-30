@@ -711,21 +711,53 @@ namespace MoruToon.Editor
 
                 // === ブレンドモードプリセット ===
                 EditorGUILayout.LabelField("表示方法プリセット / Blend Preset", EditorStyles.miniLabel);
+
+                // 1行目: よく使う
                 using (new GUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("✨ 加算（光る）", EditorStyles.miniButton))
+                    if (GUILayout.Button("✨ 加算\n(光る)", EditorStyles.miniButton))
+                        SetBlendMode(material, 5, 10); // SrcAlpha, One
+                    if (GUILayout.Button("🌫️ 半透明\n(通常)", EditorStyles.miniButton))
+                        SetBlendMode(material, 5, 6);  // SrcAlpha, OneMinusSrcAlpha
+                    if (GUILayout.Button("⬛ 上書き\n(不透明)", EditorStyles.miniButton))
+                        SetBlendMode(material, 1, 0);  // One, Zero
+                }
+
+                // 2行目: 特殊ブレンド
+                using (new GUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("🎨 乗算\n(暗く)", EditorStyles.miniButton))
+                        SetBlendMode(material, 2, 0);  // DstColor, Zero
+                    if (GUILayout.Button("🔆 スクリーン\n(明るく)", EditorStyles.miniButton))
+                        SetBlendMode(material, 4, 1);  // OneMinusDstColor, One
+                    if (GUILayout.Button("📖 乗算半透明\n(色混ぜ)", EditorStyles.miniButton))
+                        SetBlendMode(material, 2, 6);  // DstColor, OneMinusSrcAlpha
+                }
+
+                // 3行目: ZWrite/Cull クイック設定
+                EditorGUILayout.Space(2);
+                EditorGUILayout.LabelField("クイック設定 / Quick Settings", EditorStyles.miniLabel);
+                using (new GUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("🔴 カットアウト\n(不透明・黒抜き)", EditorStyles.miniButton))
+                    {
+                        SetBlendMode(material, 1, 0);  // One, Zero
+                        if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 1);
+                    }
+                    if (GUILayout.Button("🔵 透明\n(両面)", EditorStyles.miniButton))
+                    {
+                        SetBlendMode(material, 5, 6);  // SrcAlpha, OneMinusSrcAlpha
+                        if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0);
+                        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0);
+                    }
+                    if (GUILayout.Button("🟢 光る\n(両面)", EditorStyles.miniButton))
                     {
                         SetBlendMode(material, 5, 10); // SrcAlpha, One
-                    }
-                    if (GUILayout.Button("🌫️ 半透明", EditorStyles.miniButton))
-                    {
-                        SetBlendMode(material, 5, 6); // SrcAlpha, OneMinusSrcAlpha
-                    }
-                    if (GUILayout.Button("⬛ 上書き", EditorStyles.miniButton))
-                    {
-                        SetBlendMode(material, 1, 0); // One, Zero
+                        if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0);
+                        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0);
                     }
                 }
+
                 DrawLine();
 
                 DrawProp(materialEditor, properties, "_SrcBlend");
