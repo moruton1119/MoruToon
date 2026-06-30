@@ -218,8 +218,29 @@ inline float moruLifetimeDissolveAmount(float agePercent, float startDelay, floa
 }
 
 // -------------------------------------
+// Dissolve with Softness
+// -------------------------------------
+inline void moruDissolveSoft(
+    inout fixed4 color,
+    float2 uv,
+    sampler2D dissolveTex,
+    float dissolveAmount,
+    float edgeWidth,
+    fixed4 edgeColor,
+    float softness)
+{
+    float noise = tex2D(dissolveTex, uv).r;
+    float dissDist = noise - dissolveAmount;
+    float fadeAlpha = saturate((dissDist + softness) / max(softness, 0.001));
+    color.a *= fadeAlpha;
+    float edgeFactor = saturate(abs(dissDist) / max(edgeWidth, 0.001));
+    float isEdge = 1.0 - edgeFactor;
+    color.rgb += edgeColor.rgb * isEdge * edgeColor.a;
+    clip(dissDist + softness);
+}
+
+// -------------------------------------
 // Black Transparency
-// テクスチャの黒い部分を透明にする
 // -------------------------------------
 inline float moruBlackTransparency(fixed3 color, float threshold, float softness)
 {

@@ -1,6 +1,6 @@
 // ============================================================
 // MoruToon - Lightweight Gimmick & Particle Shader
-// Version: 0.1.0
+// Version: 0.3.0
 // License: MIT
 // ============================================================
 
@@ -8,9 +8,6 @@ Shader "MoruToon/Particle"
 {
     Properties
     {
-        // ============================================
-        // Template Selector (Tab System)
-        // ============================================
         [HideInInspector] _TemplateMode ("Template Mode", Float) = 0
 
         // ============================================
@@ -51,6 +48,7 @@ Shader "MoruToon/Particle"
         [Toggle] _DISSOLVE_LIFETIME ("Lifetime Dissolve", Float) = 0
         _DissolveDelay ("Dissolve Delay", Range(0,1)) = 0.3
         _DissolveSpeed ("Dissolve Speed", Range(0.1,10)) = 1.5
+        _DissolveSoftness ("Dissolve Softness", Range(0.001,1)) = 0.2
 
         // ============================================
         // Flipbook
@@ -106,7 +104,7 @@ Shader "MoruToon/Particle"
         _LifetimeFadeOut ("Fade Out Start", Range(0,1)) = 0.7
 
         // ============================================
-        // Mask (Visible / Hide)
+        // Mask
         // ============================================
         [Toggle] _MASK_ON ("Mask", Float) = 0
         _VisibleMaskTex ("Visible Mask (White=Show)", 2D) = "white" {}
@@ -115,26 +113,71 @@ Shader "MoruToon/Particle"
         _HideMaskStrength ("Hide Mask Strength", Range(0,1)) = 1.0
 
         // ============================================
+        // Fresnel / フレネル（輪郭光・正面透け）
+        // ============================================
+        [Toggle] _FRESNEL_ON ("Fresnel", Float) = 0
+        _FresnelPower ("Fresnel Power", Range(0.1,10)) = 3.0
+        _FresnelColor ("Fresnel Color", Color) = (1,1,1,1)
+        _FresnelAlpha ("Fresnel Alpha (正面の透け)", Range(0,1)) = 0.0
+
+        // ============================================
+        // Normal Map / ノーマルマップ
+        // ============================================
+        [Toggle] _NORMALMAP_ON ("Normal Map", Float) = 0
+        [Normal] _NormalMap ("Normal Map", 2D) = "bump" {}
+        _NormalScrollU ("Normal Scroll U", Float) = 0.1
+        _NormalScrollV ("Normal Scroll V", Float) = 0.1
+        _NormalStrength ("Normal Strength", Range(0,2)) = 1.0
+
+        // ============================================
+        // Cubemap Reflection / キューブマップ反射
+        // ============================================
+        [Toggle] _CUBEMAP_ON ("Cubemap", Float) = 0
+        [NoScaleOffset] _Cubemap ("Cubemap", Cube) = "_Skybox" {}
+        [HDR] _ReflectColor ("Reflect Color", Color) = (1,1,1,1)
+
+        // ============================================
+        // Parallax / パララックス（視差奥行き）
+        // ============================================
+        [Toggle] _PARALLAX_ON ("Parallax", Float) = 0
+        _ParallaxDepth ("Parallax Depth", Range(-0.1, 0.1)) = 0.02
+
+        // ============================================
+        // UV Distortion / UV歪み（水流ゆらぎ）
+        // ============================================
+        [Toggle] _DISTORTION_ON ("UV Distortion", Float) = 0
+        _DistortionTex ("Distortion Texture", 2D) = "white" {}
+        _DistortionStrength ("Distortion Strength", Range(0, 0.5)) = 0.05
+        _DistortScrollU ("Distortion Scroll U", Float) = -0.05
+        _DistortScrollV ("Distortion Scroll V", Float) = 0.07
+
+        // ============================================
+        // GrabPass Refraction / 背景屈折
+        // ============================================
+        [Toggle] _REFRACTION_ON ("Refraction (GrabPass)", Float) = 0
+        _RefractionStrength ("Refraction Strength", Range(0, 0.5)) = 0.05
+
+        // ============================================
         // Black Transparency / 黒透過
         // ============================================
         [Toggle] _BLACKTRANSPARENCY_ON ("Black Transparency", Float) = 0
-        _BlackThreshold ("Threshold / 閾値", Range(0,1)) = 0.1
-        _BlackSoftness ("Softness / 柔らかさ", Range(0,1)) = 0.3
+        _BlackThreshold ("Threshold", Range(0,1)) = 0.1
+        _BlackSoftness ("Softness", Range(0,1)) = 0.3
 
         // ============================================
-        // Stencil / ステンシル（ポータル・マスキング）
+        // Stencil
         // ============================================
-        _StencilRef ("ステンシル番号 / Stencil Ref", Range(0,255)) = 1
-        [Enum(Always,8,Equal,3,NotEqual,6)] _StencilComp ("ステンシル判定 / Stencil Compare", Float) = 8
-        [Enum(Keep,0,Replace,2)] _StencilPass ("ステンシル書込み / Stencil Pass", Float) = 2
+        _StencilRef ("Stencil Reference", Range(0,255)) = 1
+        [Enum(UnityEngine.Rendering.CompareFunction)] _StencilComp ("Stencil Compare", Float) = 8
+        [Enum(UnityEngine.Rendering.StencilOp)] _StencilPass ("Stencil Pass", Float) = 2
 
         // ============================================
-        // Rendering / 描画設定
+        // Rendering
         // ============================================
-        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("ブレンド元 / Src Blend", Float) = 5
-        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("ブレンド先 / Dst Blend", Float) = 10
-        [Enum(Off,0,On,1)] _ZWrite ("奥行き書込み / ZWrite", Float) = 0
-        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("表示面 / Cull Mode", Float) = 0
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src Blend", Float) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst Blend", Float) = 10
+        [Enum(Off,0,On,1)] _ZWrite ("ZWrite", Float) = 0
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull Mode", Float) = 0
     }
 
     SubShader
@@ -155,6 +198,12 @@ Shader "MoruToon/Particle"
             Pass [_StencilPass]
         }
 
+        GrabPass
+        {
+            Tags { "LightMode" = "Always" }
+            "_MoruGrabTexture"
+        }
+
         Pass
         {
             Name "Forward"
@@ -171,7 +220,6 @@ Shader "MoruToon/Particle"
             #pragma multi_compile_particles
             #pragma multi_compile_fog
 
-            // Feature toggles
             #pragma shader_feature _ _UVSCROLL_ON
             #pragma shader_feature _ _ROTATION_ON
             #pragma shader_feature _ _EMISSION_ON
@@ -186,6 +234,12 @@ Shader "MoruToon/Particle"
             #pragma shader_feature _ _DISTANCEFADE_ON
             #pragma shader_feature _ _LIFETIMEFADE_ON
             #pragma shader_feature _ _MASK_ON
+            #pragma shader_feature _ _FRESNEL_ON
+            #pragma shader_feature _ _NORMALMAP_ON
+            #pragma shader_feature _ _CUBEMAP_ON
+            #pragma shader_feature _ _PARALLAX_ON
+            #pragma shader_feature _ _DISTORTION_ON
+            #pragma shader_feature _ _REFRACTION_ON
             #pragma shader_feature _ _BLACKTRANSPARENCY_ON
 
             #include "UnityCG.cginc"
@@ -199,68 +253,111 @@ Shader "MoruToon/Particle"
             fixed4 _Color;
             float _Brightness;
 
-            // UV Scroll / Rotation
-            float _ScrollSpeedU, _ScrollSpeedV;
-            float _RotationSpeed;
+            float _ScrollSpeedU, _ScrollSpeedV, _RotationSpeed;
 
-            // Emission
             sampler2D _EmissionMap;
             fixed4 _EmissionColor;
             float _PulseSpeed, _PulseMin, _PulseMax;
 
-            // Dissolve
             sampler2D _DissolveTex;
-            float _DissolveAmount, _DissolveEdgeWidth;
+            float4 _DissolveTex_ST;
+            float _DissolveAmount, _DissolveEdgeWidth, _DissolveSoftness;
             fixed4 _DissolveEdgeColor;
             float _DissolveDelay, _DissolveSpeed;
 
-            // Flipbook
             float _FlipbookTilesX, _FlipbookTilesY, _FlipbookFPS, _FlipbookBlend;
 
-            // Layer Blend
             sampler2D _SubTex;
             float _BlendMode, _SubIntensity;
             float _SubScrollSpeedU, _SubScrollSpeedV;
 
-            // Soft Particle
             sampler2D_float _CameraDepthTexture;
             float _SoftDistance;
 
-            // Color Ramp
             sampler2D _ColorRampTex;
             float _ColorRampIntensity;
 
-            // HUE Shift
             float _HueShift, _HueShiftSpeed;
 
-            // Distance Fade
             float _FadeNear, _FadeFar;
 
-            // Particle Lifetime
             float _LifetimeFadeIn, _LifetimeFadeOut;
 
-            // Mask
             sampler2D _VisibleMaskTex;
             float _VisibleMaskStrength;
             sampler2D _HideMaskTex;
             float _HideMaskStrength;
 
+            // Fresnel
+            float _FresnelPower;
+            fixed4 _FresnelColor;
+            float _FresnelAlpha;
+
+            // Normal Map
+            sampler2D _NormalMap;
+            float4 _NormalMap_ST;
+            float _NormalScrollU, _NormalScrollV, _NormalStrength;
+
+            // Cubemap
+            samplerCUBE _Cubemap;
+            fixed4 _ReflectColor;
+
+            // Parallax
+            float _ParallaxDepth;
+
+            // Distortion
+            sampler2D _DistortionTex;
+            float _DistortionStrength;
+            float _DistortScrollU, _DistortScrollV;
+
+            // Refraction
+            sampler2D _MoruGrabTexture;
+            float _RefractionStrength;
+
             // Black Transparency
-            float _BlackThreshold;
-            float _BlackSoftness;
+            float _BlackThreshold, _BlackSoftness;
 
             // ============================================
             // Vertex
             // ============================================
-            v2f_moru vert(appdata_moru v)
+            struct v2f_moru_full
             {
-                v2f_moru o;
+                float4 vertex       : SV_POSITION;
+                fixed4 color        : COLOR;
+                float2 uv           : TEXCOORD0;
+                float  agePercent   : TEXCOORD1;
+                float4 screenPos    : TEXCOORD2;
+#if defined(_SOFTPARTICLES_ON)
+                float eyeDepth      : TEXCOORD3;
+#endif
+                float3 worldPos     : TEXCOORD4;
+                float3 worldNormal  : TEXCOORD5;
+                float3 worldViewDir : TEXCOORD6;
+                float3 tangentViewDir : TEXCOORD7;
+                UNITY_FOG_COORDS(8)
+            };
+
+            v2f_moru_full vert(appdata_full v)
+            {
+                v2f_moru_full o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.color = v.color;
-                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
                 o.agePercent = 0.0;
                 o.screenPos = ComputeScreenPos(o.vertex);
                 o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldViewDir = WorldSpaceViewDir(v.vertex);
+
+                // Tangent space view dir for parallax
+                float3 wTangent = UnityObjectToWorldDir(v.tangent.xyz);
+                float tangentSign = v.tangent.w * unity_WorldTransformParams.w;
+                float3 wBitangent = cross(o.worldNormal, wTangent) * tangentSign;
+                o.tangentViewDir = float3(
+                    dot(wTangent, o.worldViewDir),
+                    dot(wBitangent, o.worldViewDir),
+                    dot(o.worldNormal, o.worldViewDir)
+                );
 
 #if defined(_SOFTPARTICLES_ON)
                 COMPUTE_EYEDEPTH(o.eyeDepth);
@@ -272,11 +369,12 @@ Shader "MoruToon/Particle"
             // ============================================
             // Fragment
             // ============================================
-            fixed4 frag(v2f_moru i) : SV_Target
+            fixed4 frag(v2f_moru_full i) : SV_Target
             {
                 float2 uv = i.uv;
                 float agePercent = i.agePercent;
-                fixed4 col;
+                float3 normal = normalize(i.worldNormal);
+                float3 viewDir = normalize(i.worldViewDir);
 
                 // --- UV Scroll ---
                 #if defined(_UVSCROLL_ON)
@@ -288,7 +386,46 @@ Shader "MoruToon/Particle"
                     uv = moruRotateUV(uv, _Time.y * _RotationSpeed);
                 #endif
 
-                // --- Flipbook + Main Texture Sampling ---
+                // --- UV Distortion ---
+                #if defined(_DISTORTION_ON)
+                {
+                    float2 distortUV = uv + float2(_DistortScrollU, _DistortScrollV) * _Time.y;
+                    float noiseX = tex2D(_DistortionTex, distortUV).r;
+                    float noiseY = tex2D(_DistortionTex, distortUV + float2(0.3, 0.7)).r;
+                    float2 distortVec = (float2(noiseX, noiseY) * 2.0 - 1.0) * _DistortionStrength;
+                    uv += distortVec;
+                }
+                #endif
+
+                // --- Parallax ---
+                #if defined(_PARALLAX_ON)
+                {
+                    float3 tViewDir = normalize(i.tangentViewDir);
+                    uv += tViewDir.xy * _ParallaxDepth;
+                }
+                #endif
+
+                // --- Normal Map ---
+                float3 normalMapVal = float3(0,0,1);
+                #if defined(_NORMALMAP_ON)
+                {
+                    float2 nrmUV = TRANSFORM_TEX(uv, _NormalMap) + float2(_NormalScrollU, _NormalScrollV) * _Time.y;
+                    normalMapVal = UnpackNormal(tex2D(_NormalMap, nrmUV));
+                    normalMapVal.xy *= _NormalStrength;
+                }
+                #endif
+
+                // --- Refraction (GrabPass) ---
+                fixed3 refractionColor = fixed3(0,0,0);
+                #if defined(_REFRACTION_ON)
+                {
+                    float2 screenUV = i.screenPos.xy / max(i.screenPos.w, 0.001);
+                    float2 refractOffset = normalMapVal.xy * _RefractionStrength;
+                    refractionColor = tex2D(_MoruGrabTexture, screenUV + refractOffset).rgb;
+                }
+                #endif
+
+                // --- Flipbook ---
                 #if defined(_FLIPBOOK_ON)
                 {
                     float frame = _Time.y * _FlipbookFPS;
@@ -302,11 +439,16 @@ Shader "MoruToon/Particle"
                     else
                     {
                         uv = moruFlipbook(uv, _FlipbookTilesX, _FlipbookTilesY, floor(frame));
-                        col = tex2D(_MainTex, uv);
                     }
                 }
-                #else
-                    col = tex2D(_MainTex, uv);
+                #endif
+
+                // --- Main Texture ---
+                fixed4 col = tex2D(_MainTex, uv);
+
+                // --- Refraction blend ---
+                #if defined(_REFRACTION_ON)
+                    col.rgb = lerp(refractionColor, col.rgb, col.a);
                 #endif
 
                 // --- Layer Blend ---
@@ -325,7 +467,7 @@ Shader "MoruToon/Particle"
                 }
                 #endif
 
-                // --- Mask (Visible / Hide) ---
+                // --- Mask ---
                 #if defined(_MASK_ON)
                 {
                     float visMask = moruApplyMask(uv, _VisibleMaskTex, _VisibleMaskStrength);
@@ -334,11 +476,10 @@ Shader "MoruToon/Particle"
                 }
                 #endif
 
-                // --- Black Transparency / 黒透過 ---
+                // --- Black Transparency ---
                 #if defined(_BLACKTRANSPARENCY_ON)
                 {
-                    float luminance = max(col.r, max(col.g, col.b));
-                    float blackAlpha = 1.0 - smoothstep(_BlackThreshold, _BlackThreshold + _BlackSoftness + 0.001, luminance);
+                    float blackAlpha = moruBlackTransparency(col.rgb, _BlackThreshold, _BlackSoftness);
                     col.a *= 1.0 - blackAlpha;
                 }
                 #endif
@@ -347,6 +488,27 @@ Shader "MoruToon/Particle"
                 col *= i.color;
                 col *= _Color;
                 col *= _Brightness;
+
+                // --- Fresnel ---
+                #if defined(_FRESNEL_ON)
+                {
+                    float ndotv = saturate(dot(normal, viewDir));
+                    float fresnel = pow(1.0 - ndotv, _FresnelPower);
+                    col.rgb += _FresnelColor.rgb * fresnel * _FresnelColor.a;
+                    col.a = lerp(col.a, col.a * fresnel, _FresnelAlpha);
+                }
+                #endif
+
+                // --- Cubemap Reflection ---
+                #if defined(_CUBEMAP_ON)
+                {
+                    float3 reflectDir = reflect(-viewDir, normal);
+                    float3 envColor = texCUBE(_Cubemap, reflectDir).rgb;
+                    float ndotv = saturate(dot(normal, viewDir));
+                    float fresnel = pow(1.0 - ndotv, 3.0);
+                    col.rgb += envColor * _ReflectColor.rgb * _ReflectColor.a * fresnel;
+                }
+                #endif
 
                 // --- Color Ramp ---
                 #if defined(_COLORRAMP_ON)
@@ -379,7 +541,7 @@ Shader "MoruToon/Particle"
                 }
                 #endif
 
-                // --- Particle Lifetime Fade ---
+                // --- Lifetime Fade ---
                 #if defined(_LIFETIMEFADE_ON)
                 {
                     float lifeFade = moruLifetimeFade(agePercent, _LifetimeFadeIn, _LifetimeFadeOut);
@@ -394,7 +556,7 @@ Shader "MoruToon/Particle"
                     #if defined(_DISSOLVE_LIFETIME)
                         dissAmount = moruLifetimeDissolveAmount(agePercent, _DissolveDelay, _DissolveSpeed);
                     #endif
-                    moruDissolve(col, uv, _DissolveTex, dissAmount, _DissolveEdgeWidth, _DissolveEdgeColor);
+                    moruDissolveSoft(col, uv, _DissolveTex, dissAmount, _DissolveEdgeWidth, _DissolveEdgeColor, _DissolveSoftness);
                 }
                 #endif
 

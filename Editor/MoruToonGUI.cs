@@ -33,90 +33,48 @@ namespace MoruToon.Editor
         {
             new PresetConfig
             {
-                name = "🔥 Fire / 炎",
-                description = "フリップブック炎アニメ＋発光パルス＋ソフトパーティクル",
-                features = new[] { "_FLIPBOOK_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
-                srcBlend = 5, dstBlend = 10,
+                name = "🧊 Ice / 氷",
+                description = "ProceduralIceShader風：屈折＋フレネル＋ノーマルマップ＋パララックス＋歪み＋ディゾルブ",
+                features = new[]
+                {
+                    "_FRESNEL_ON", "_NORMALMAP_ON", "_CUBEMAP_ON",
+                    "_PARALLAX_ON", "_DISTORTION_ON", "_REFRACTION_ON",
+                    "_DISSOLVE_ON", "_EMISSION_ON"
+                },
+                srcBlend = 5, dstBlend = 6,
+                zWrite = 0,
+                cull = 2,
             },
             new PresetConfig
             {
-                name = "❄️ Ice / 氷",
-                description = "UVスクロール＋発光＋ソフトパーティクル",
-                features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
+                name = "⚡ All Features / 全機能",
+                description = "全機能を有効化。何ができるか試す用。重いので不要な機能をOFFにしてください",
+                features = new[]
+                {
+                    "_UVSCROLL_ON", "_ROTATION_ON",
+                    "_EMISSION_ON", "_EMISSION_PULSE",
+                    "_DISSOLVE_ON", "_DISSOLVE_LIFETIME",
+                    "_FLIPBOOK_ON",
+                    "_LAYERBLEND_ON",
+                    "_SOFTPARTICLES_ON",
+                    "_COLORRAMP_ON",
+                    "_HUESHIFT_ON",
+                    "_DISTANCEFADE_ON",
+                    "_LIFETIMEFADE_ON",
+                    "_MASK_ON",
+                    "_FRESNEL_ON",
+                    "_NORMALMAP_ON",
+                    "_CUBEMAP_ON",
+                    "_PARALLAX_ON",
+                    "_DISTORTION_ON",
+                    "_REFRACTION_ON",
+                    "_BLACKTRANSPARENCY_ON"
+                },
                 srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "✨ Light / 光",
-                description = "発光パルス＋ソフトパーティクル＋ライフタイムフェード",
-                features = new[] { "_EMISSION_ON", "_EMISSION_PULSE", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "⚡ Energy / エネルギー",
-                description = "UVスクロール＋回転＋発光パルス＋カラーランプ＋HUE Shift",
-                features = new[] { "_UVSCROLL_ON", "_ROTATION_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_COLORRAMP_ON", "_HUESHIFT_ON", "_SOFTPARTICLES_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "💨 Smoke / 煙",
-                description = "フリップブック煙アニメ＋ソフトパーティクル",
-                features = new[] { "_FLIPBOOK_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
-                srcBlend = 2, dstBlend = 0,
-            },
-            new PresetConfig
-            {
-                name = "🌟 Trail / トレイル",
-                description = "UVスクロール＋発光＋カラーランプ＋ソフトパーティクル",
-                features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_COLORRAMP_ON", "_SOFTPARTICLES_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "💥 Explosion / 爆発",
-                description = "フリップブック爆発アニメ＋発光＋ソフトパーティクル",
-                features = new[] { "_FLIPBOOK_ON", "_EMISSION_ON", "_SOFTPARTICLES_ON", "_LIFETIMEFADE_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "🔮 Magic Circle / 魔法陣",
-                description = "UVスクロール＋回転＋発光パルス＋レイヤー合成",
-                features = new[] { "_UVSCROLL_ON", "_ROTATION_ON", "_EMISSION_ON", "_EMISSION_PULSE", "_LAYERBLEND_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "🚪 Stencil Portal / ポータル",
-                description = "ディゾルブ＋発光＋UVスクロール",
-                features = new[] { "_DISSOLVE_ON", "_EMISSION_ON", "_UVSCROLL_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "👋 Dissolve / 消失",
-                description = "ライフタイム連携ディゾルブ＋縁発光",
-                features = new[] { "_DISSOLVE_ON", "_DISSOLVE_LIFETIME", "_EMISSION_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "🎭 Hologram / ホログラム",
-                description = "UVスクロール＋発光＋HUE Shift＋カラーランプ＋距離フェード",
-                features = new[] { "_UVSCROLL_ON", "_EMISSION_ON", "_HUESHIFT_ON", "_COLORRAMP_ON", "_DISTANCEFADE_ON" },
-                srcBlend = 5, dstBlend = 10,
-            },
-            new PresetConfig
-            {
-                name = "⚪ Basic / 基本",
-                description = "最小構成。発光のみ",
-                features = new[] { "_EMISSION_ON" },
-                srcBlend = 5, dstBlend = 10,
+                zWrite = 0,
+                cull = 0,
             },
         };
-
         // カスタムテンプレート（ユーザーが追加したもの）
         private List<PresetConfig> _customPresets = new List<PresetConfig>();
 
@@ -144,7 +102,13 @@ namespace MoruToon.Editor
             "_DISTANCEFADE_ON",
             "_LIFETIMEFADE_ON",
             "_MASK_ON",
-            "_BLACKTRANSPARENCY_ON"
+            "_BLACKTRANSPARENCY_ON",
+            "_FRESNEL_ON",
+            "_NORMALMAP_ON",
+            "_CUBEMAP_ON",
+            "_PARALLAX_ON",
+            "_DISTORTION_ON",
+            "_REFRACTION_ON"
         };
 
         // ============================================
@@ -169,6 +133,12 @@ namespace MoruToon.Editor
         private bool _showLifetimeFade;
         private bool _showMask;
         private bool _showBlackTransparency;
+        private bool _showFresnel;
+        private bool _showNormalMap;
+        private bool _showCubemap;
+        private bool _showParallax;
+        private bool _showDistortion;
+        private bool _showRefraction;
         private bool _showStencil;
         private bool _showRendering;
         private bool _showAdvanced;
@@ -682,6 +652,112 @@ namespace MoruToon.Editor
                         DrawLine();
                         DrawProp(materialEditor, properties, "_HideMaskTex");
                         DrawProp(materialEditor, properties, "_HideMaskStrength");
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            EditorGUILayout.Space(4);
+
+            // ============================================================
+            // Surface / 表面質感（Fresnel, NormalMap, Cubemap, Parallax, Distortion, Refraction）
+            // ============================================================
+            GUILayout.Label("Surface / 表面質感", _categoryStyle);
+
+            if (IsOn(material, "_FRESNEL_ON") || IsInSearch("fresnel"))
+            {
+                _showFresnel = Foldout("Fresnel / フレネル（輪郭光）", _showFresnel);
+                if (_showFresnel)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_FRESNEL_ON");
+                    if (IsOn(material, "_FRESNEL_ON"))
+                    {
+                        EditorGUILayout.HelpBox("輪郭が光り、真正面は透けます。氷やガラス、ホログラムに。", MessageType.Info);
+                        DrawProp(materialEditor, properties, "_FresnelPower");
+                        DrawProp(materialEditor, properties, "_FresnelColor");
+                        DrawProp(materialEditor, properties, "_FresnelAlpha");
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            if (IsOn(material, "_NORMALMAP_ON") || IsInSearch("normal"))
+            {
+                _showNormalMap = Foldout("Normal Map / ノーマルマップ", _showNormalMap);
+                if (_showNormalMap)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_NORMALMAP_ON");
+                    if (IsOn(material, "_NORMALMAP_ON"))
+                    {
+                        DrawProp(materialEditor, properties, "_NormalMap");
+                        DrawProp(materialEditor, properties, "_NormalScrollU");
+                        DrawProp(materialEditor, properties, "_NormalScrollV");
+                        DrawProp(materialEditor, properties, "_NormalStrength");
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            if (IsOn(material, "_CUBEMAP_ON") || IsInSearch("cube"))
+            {
+                _showCubemap = Foldout("Cubemap / 環境反射", _showCubemap);
+                if (_showCubemap)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_CUBEMAP_ON");
+                    if (IsOn(material, "_CUBEMAP_ON"))
+                    {
+                        DrawProp(materialEditor, properties, "_Cubemap");
+                        DrawProp(materialEditor, properties, "_ReflectColor");
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            if (IsOn(material, "_PARALLAX_ON") || IsInSearch("parallax"))
+            {
+                _showParallax = Foldout("Parallax / 視差奥行き", _showParallax);
+                if (_showParallax)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_PARALLAX_ON");
+                    if (IsOn(material, "_PARALLAX_ON"))
+                        DrawProp(materialEditor, properties, "_ParallaxDepth");
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            if (IsOn(material, "_DISTORTION_ON") || IsInSearch("distortion"))
+            {
+                _showDistortion = Foldout("UV Distortion / UV歪み", _showDistortion);
+                if (_showDistortion)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_DISTORTION_ON");
+                    if (IsOn(material, "_DISTORTION_ON"))
+                    {
+                        DrawProp(materialEditor, properties, "_DistortionTex");
+                        DrawProp(materialEditor, properties, "_DistortionStrength");
+                        DrawProp(materialEditor, properties, "_DistortScrollU");
+                        DrawProp(materialEditor, properties, "_DistortScrollV");
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            if (IsOn(material, "_REFRACTION_ON") || IsInSearch("refraction"))
+            {
+                _showRefraction = Foldout("Refraction / 背景屈折 (GrabPass)", _showRefraction);
+                if (_showRefraction)
+                {
+                    EditorGUILayout.BeginVertical(_boxOuterStyle);
+                    DrawToggleProp(materialEditor, properties, "_REFRACTION_ON");
+                    if (IsOn(material, "_REFRACTION_ON"))
+                    {
+                        EditorGUILayout.HelpBox("背景を歪ませて屈折させます。氷やガラスに。ノーマルマップが必要です。", MessageType.Info);
+                        DrawProp(materialEditor, properties, "_RefractionStrength");
                     }
                     EditorGUILayout.EndVertical();
                 }
